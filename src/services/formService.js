@@ -72,13 +72,27 @@ async function updateForm(form, actorId, payload) {
   });
 
   const sanitized = sanitizeFormPayload(payload);
-  const slug = await ensureUniqueSlug(sanitized.slug || form.slug || form.title, form._id);
+  const nextTitle = sanitized.title || form.title;
+  const nextSlug = await ensureUniqueSlug(
+    Object.prototype.hasOwnProperty.call(payload, "slug") ? sanitized.slug || nextTitle : form.slug,
+    form._id
+  );
 
-  form.title = sanitized.title || form.title;
-  form.slug = slug;
-  form.collaborators = sanitized.collaborators.filter(Boolean);
-  form.theme = sanitized.theme;
-  form.fields = sanitized.fields;
+  form.title = nextTitle;
+  form.slug = nextSlug;
+
+  if (Object.prototype.hasOwnProperty.call(payload, "collaborators")) {
+    form.collaborators = sanitized.collaborators.filter(Boolean);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "theme")) {
+    form.theme = sanitized.theme;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "fields")) {
+    form.fields = sanitized.fields;
+  }
+
   form.version += 1;
 
   await form.save();

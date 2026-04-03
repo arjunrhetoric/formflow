@@ -21,7 +21,7 @@ export default function AuthPage() {
       if (tab === 'login') await login(email, password);
       else await register(name, email, password);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid credentials');
+      setError(err.response?.data?.message || err.response?.data?.error || 'Unable to continue');
     } finally {
       setLoading(false);
     }

@@ -16,7 +16,7 @@ export default function Dashboard() {
   const loadForms = async () => {
     try {
       const res = await getForms();
-      setForms(res.data);
+      setForms(res.data.forms || []);
     } catch (e) {
       console.error(e);
     }
@@ -26,7 +26,7 @@ export default function Dashboard() {
 
   const handleCreate = async () => {
     const res = await createForm('Untitled Form');
-    router.push(`/builder/${res.data._id}`);
+    router.push(`/builder/${res.data.form._id}`);
   };
 
   const handleDelete = async (id: string) => {

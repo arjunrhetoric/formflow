@@ -1,8 +1,8 @@
 const http = require("http");
-const { createApp } = require("./app");
-const { connectDatabase } = require("./config/database");
-const { env } = require("./config/env");
-const { attachSocketServer } = require("./sockets");
+const { createApp } = require("./src/app");
+const { connectDatabase } = require("./src/config/database");
+const { env } = require("./src/config/env");
+const { attachSocketServer } = require("./src/sockets");
 
 async function bootstrap() {
   await connectDatabase();

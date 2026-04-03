@@ -13,4 +13,5 @@ export const FieldComponents: Record<string, React.FC<any>> = {
   date_range: DateRangeInput,
   file_upload: FileUploadInput,
   signature: SignaturePadField,
+  signature_pad: SignaturePadField,
 };

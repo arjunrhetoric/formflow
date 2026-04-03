@@ -47,6 +47,18 @@ router.get(
   })
 );
 
+router.get(
+  "/:id/history",
+  asyncHandler(async (req, res) => {
+    const form = await getAccessibleForm(req.params.id, req.user._id);
+    const history = await FormHistory.find({ formId: form._id })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({ history });
+  })
+);
+
 router.put(
   "/:id",
   asyncHandler(async (req, res) => {

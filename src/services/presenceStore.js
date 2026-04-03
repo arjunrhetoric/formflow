@@ -34,12 +34,28 @@ class RedisPresenceStore {
   constructor(url) {
     this.redis = new Redis(url, {
       maxRetriesPerRequest: 1,
-      lazyConnect: true
+      lazyConnect: true,
+      enableReadyCheck: false
     });
     this.connected = false;
+    this.disabled = false;
+
+    this.redis.on("error", (error) => {
+      this.disabled = true;
+      this.connected = false;
+      console.warn("Redis presence disabled, falling back to memory store:", error.message);
+    });
+
+    this.redis.on("close", () => {
+      this.connected = false;
+    });
   }
 
   async ensureConnection() {
+    if (this.disabled) {
+      throw new Error("Redis presence unavailable");
+    }
+
     if (!this.connected) {
       await this.redis.connect();
       this.connected = true;
@@ -68,11 +84,40 @@ class RedisPresenceStore {
   }
 }
 
-function createPresenceStore() {
-  if (env.REDIS_URL) {
-    return new RedisPresenceStore(env.REDIS_URL);
+class FallbackPresenceStore {
+  constructor(redisUrl) {
+    this.memoryStore = new MemoryPresenceStore();
+    this.primaryStore = redisUrl ? new RedisPresenceStore(redisUrl) : null;
   }
-  return new MemoryPresenceStore();
+
+  async run(method, ...args) {
+    if (!this.primaryStore || this.primaryStore.disabled) {
+      return this.memoryStore[method](...args);
+    }
+
+    try {
+      return await this.primaryStore[method](...args);
+    } catch (_error) {
+      this.primaryStore.disabled = true;
+      return this.memoryStore[method](...args);
+    }
+  }
+
+  async setCursor(formId, userId, payload) {
+    return this.run("setCursor", formId, userId, payload);
+  }
+
+  async getPresence(formId) {
+    return this.run("getPresence", formId);
+  }
+
+  async removePresence(formId, userId) {
+    return this.run("removePresence", formId, userId);
+  }
+}
+
+function createPresenceStore() {
+  return new FallbackPresenceStore(env.REDIS_URL);
 }
 
 module.exports = { createPresenceStore };

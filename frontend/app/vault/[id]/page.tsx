@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { getForm } from '@/lib/api/forms';
 import { getResponses, exportCSV, exportJSON } from '@/lib/api/responses';
 import { AuthGuard } from '@/components/AuthGuard';
@@ -15,8 +15,8 @@ export default function ResponseVault() {
   const [responses, setResponses] = useState<any[]>([]);
 
   useEffect(() => {
-    getForm(id).then(r => setForm(r.data));
-    getResponses(id).then(r => setResponses(r.data));
+    getForm(id).then((r) => setForm(r.data.form));
+    getResponses(id).then((r) => setResponses(r.data.responses || []));
   }, [id]);
 
   const handleExport = async (type: 'csv' | 'json') => {
@@ -24,7 +24,7 @@ export default function ResponseVault() {
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${form?.title}_responses.${type}`);
+    link.setAttribute('download', `${form?.title || 'form'}_responses.${type}`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -39,7 +39,7 @@ export default function ResponseVault() {
           <div className="flex items-center justify-between shrink-0">
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">Response Vault</h1>
-              <p className="text-muted-foreground font-medium">{form.title} — {responses.length} responses</p>
+              <p className="text-muted-foreground font-medium">{form.title} - {responses.length} responses</p>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => handleExport('csv')}><Download className="mr-2 h-4 w-4" /> CSV</Button>
@@ -71,9 +71,12 @@ export default function ResponseVault() {
                           {format(new Date(r.createdAt), 'MMM d, yyyy HH:mm')}
                         </td>
                         {form.fields?.map((f: any) => {
-                          const ans = r.answers.find((a: any) => a.fieldId === f.id);
-                          const v = ans ? ans.value : '-';
-                          const display = Array.isArray(v) ? v.join(', ') : (typeof v === 'string' && v.startsWith('data:image')) ? '[Signature Image]' : v;
+                          const value = r.answers?.[f.id];
+                          const display = Array.isArray(value)
+                            ? value.join(', ')
+                            : (typeof value === 'string' && value.startsWith('data:image'))
+                              ? '[Signature Image]'
+                              : value ?? '-';
                           return (
                             <td key={f.id} className="py-3 px-4 truncate max-w-[300px]">
                               {display}

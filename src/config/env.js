@@ -11,7 +11,9 @@ const env = {
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
   CLOUDINARY_SECRET: process.env.CLOUDINARY_SECRET || "",
   REDIS_URL: process.env.REDIS_URL || "",
-  CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:5173"
+  CORS_ORIGIN:
+    process.env.CORS_ORIGIN ||
+    "http://localhost:3000,http://localhost:5173"
 };
 
 module.exports = { env };

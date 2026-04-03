@@ -4,10 +4,28 @@ import { useRouter } from 'next/navigation';
 import { getMe, login as apiLogin, register as apiRegister } from '@/lib/api/auth';
 
 interface User {
+  id: string;
   _id: string;
   name: string;
   email: string;
   cursorColor?: string;
+}
+
+function normalizeUser(user: any): User | null {
+  if (!user) {
+    return null;
+  }
+
+  const id = user.id || user._id;
+  if (!id) {
+    return null;
+  }
+
+  return {
+    ...user,
+    id,
+    _id: user._id || id
+  };
 }
 
 interface AuthContextType {
@@ -30,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('formflow_token');
     if (!token) { setIsLoading(false); return; }
     getMe()
-      .then((r) => setUser(r.data.user ?? r.data))
+      .then((r) => setUser(normalizeUser(r.data.user ?? r.data)))
       .catch(() => localStorage.removeItem('formflow_token'))
       .finally(() => setIsLoading(false));
   }, []);
@@ -38,14 +56,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const r = await apiLogin(email, password);
     localStorage.setItem('formflow_token', r.data.token);
-    setUser(r.data.user);
+    setUser(normalizeUser(r.data.user));
     router.push('/dashboard');
   }, [router]);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const r = await apiRegister(name, email, password);
     localStorage.setItem('formflow_token', r.data.token);
-    setUser(r.data.user);
+    setUser(normalizeUser(r.data.user));
     router.push('/dashboard');
   }, [router]);
 

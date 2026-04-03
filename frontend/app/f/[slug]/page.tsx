@@ -14,15 +14,14 @@ export default function StagePage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getPublicForm(slug).then(r => setForm(r.data)).catch(console.error);
+    getPublicForm(slug).then(r => setForm(r.data.form)).catch(console.error);
   }, [slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const arr = Object.entries(answers).map(([fieldId, value]) => ({ fieldId, value }));
-      await submitForm(slug, arr);
+      await submitForm(slug, answers);
       setSubmitted(true);
     } catch(e) {
       console.error(e);
@@ -35,7 +34,7 @@ export default function StagePage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8 text-center" style={{ ...(form.theme?.custom_css ? JSON.parse(form.theme.custom_css) : {}) }}>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8 text-center">
         <div className="max-w-md w-full bg-card p-12 rounded-2xl shadow-xl border border-border">
           <div className="w-16 h-16 bg-[#dcfce7] text-[#166534] rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">✓</div>
           <h2 className="text-2xl font-bold mb-3">Response Submitted</h2>
@@ -47,7 +46,7 @@ export default function StagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-16 px-4 sm:px-8 flex justify-center" style={{ ...(form.theme?.custom_css ? JSON.parse(form.theme.custom_css) : {}) }}>
+    <div className="min-h-screen bg-background py-16 px-4 sm:px-8 flex justify-center">
       <div className="w-full max-w-2xl">
         <div className="bg-card shadow-xl border border-border rounded-2xl p-8 sm:p-12">
           <h1 className="text-3xl font-bold tracking-tight mb-8 break-words text-foreground">{form.title}</h1>
@@ -58,7 +57,7 @@ export default function StagePage() {
                 <div key={f.id} className="w-full">
                   <Comp 
                     label={f.label} 
-                    required={f.required} 
+                    required={!!f.validation?.required} 
                     value={answers[f.id]}
                     onChange={(v:any) => setAnswers(prev => ({ ...prev, [f.id]: v }))}
                   />

@@ -14,10 +14,11 @@ export default function TimeTravel() {
   const [selectedVer, setSelectedVer] = useState<any>(null);
 
   useEffect(() => {
-    getForm(id).then(r => setForm(r.data));
-    getHistory(id).then(r => {
-      setHistory(r.data);
-      if (r.data.length > 0) setSelectedVer(r.data[0]);
+    getForm(id).then((r) => setForm(r.data.form));
+    getHistory(id).then((r) => {
+      const items = r.data.history || [];
+      setHistory(items);
+      if (items.length > 0) setSelectedVer(items[0]);
     });
   }, [id]);
 
@@ -31,9 +32,10 @@ export default function TimeTravel() {
 
   if (!form) return null;
 
+  const snapshotFields = selectedVer?.snapshot?.fields || [];
+
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* TopBar */}
       <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
           <ChevronLeft className="h-5 w-5" />
@@ -43,24 +45,22 @@ export default function TimeTravel() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar History List */}
         <div className="w-80 border-r border-border bg-card overflow-y-auto shrink-0 divide-y divide-border">
           {history.map((h, i) => (
-            <div 
-              key={h._id} 
+            <div
+              key={h._id}
               className={`p-4 cursor-pointer transition-colors ${selectedVer?._id === h._id ? 'bg-primary/5 border-l-4 border-l-primary' : 'hover:bg-muted border-l-4 border-l-transparent'}`}
               onClick={() => setSelectedVer(h)}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm">Version {h.version} {i === 0 && '(Current)'}</span>
+                <span className="font-semibold text-sm">Version {h.version} {i === 0 && '(Latest saved snapshot)'}</span>
                 <span className="text-xs text-muted-foreground">{format(new Date(h.createdAt), 'MMM d, HH:mm')}</span>
               </div>
-              <p className="text-xs text-muted-foreground">Updated by {h.createdBy?.name || 'System'}</p>
+              <p className="text-xs text-muted-foreground">Updated by {String(h.actorId || 'System')}</p>
             </div>
           ))}
         </div>
 
-        {/* Diff Canvas */}
         <div className="flex-1 bg-muted p-12 overflow-y-auto flex flex-col">
           {selectedVer && (
             <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
@@ -69,21 +69,21 @@ export default function TimeTravel() {
                   <h2 className="text-2xl font-bold">Version {selectedVer.version} Preview</h2>
                   <p className="text-muted-foreground mt-1">Snapshot taken on {format(new Date(selectedVer.createdAt), 'PPP p')}</p>
                 </div>
-                <Button onClick={handleRestore} disabled={history[0]?._id === selectedVer._id}>
+                <Button onClick={handleRestore}>
                   <RotateCcw className="w-4 h-4 mr-2" /> Restore this version
                 </Button>
               </div>
 
               <div className="bg-card rounded-2xl shadow-xl border border-border p-12 flex-1 pointer-events-none opacity-80">
-                <h1 className="text-3xl font-bold mb-8">{form.title}</h1>
+                <h1 className="text-3xl font-bold mb-8">{selectedVer.snapshot?.title || form.title}</h1>
                 <div className="space-y-8">
-                  {selectedVer.fields?.map((f: any) => (
+                  {snapshotFields.map((f: any) => (
                     <div key={f.id} className="w-full">
-                      <label className="text-sm font-medium">{f.label} {f.required && '*'}</label>
+                      <label className="text-sm font-medium">{f.label} {f.validation?.required && '*'}</label>
                       <div className="h-10 w-full bg-muted rounded-md mt-2 border border-border" />
                     </div>
                   ))}
-                  {selectedVer.fields?.length === 0 && (
+                  {snapshotFields.length === 0 && (
                     <div className="text-center text-muted-foreground py-12">Empty form</div>
                   )}
                 </div>
