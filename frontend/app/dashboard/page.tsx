@@ -102,7 +102,7 @@ export default function Dashboard() {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: i * 0.04 }}
-                  className="rounded-xl border border-border bg-card p-5 hover:shadow-lg transition-all group flex flex-col cursor-pointer hover:border-primary/20"
+                  className="rounded-xl border border-border bg-card p-5 hover-lift group flex flex-col cursor-pointer hover:border-primary/30"
                   onClick={() => router.push(`/builder/${f._id}`)}
                 >
                   {/* Header */}
@@ -128,12 +128,11 @@ export default function Dashboard() {
                     </span>
                   </div>
 
-                  {/* Fields count + version */}
                   <div className="flex items-center gap-2 mb-4">
-                    <Badge>{(f.fields || []).length} fields</Badge>
-                    <Badge>v{f.version || 1}</Badge>
+                    <Badge variant="secondary">{(f.fields || []).length} fields</Badge>
+                    <Badge variant="secondary">v{f.version || 1}</Badge>
                     {f.theme?.preset && f.theme.preset !== 'minimal' && (
-                      <Badge>{f.theme.preset}</Badge>
+                      <Badge variant="secondary">{f.theme.preset}</Badge>
                     )}
                   </div>
 

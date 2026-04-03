@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* Shadcn/Slate Precision tokens */
+  /* Shadcn/Zinc Precision tokens */
   --background: #ffffff;
   --foreground: #09090b;
   --card: #ffffff;
@@ -23,6 +23,13 @@
   --ring: #18181b;
   --radius: 0.625rem;
 
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.05);
+
   /* FormFlow theme vars (used in StagePage) */
   --ff-bg: #ffffff;
   --ff-accent: #18181b;
@@ -32,22 +39,27 @@
 .dark {
   --background: #09090b;
   --foreground: #fafafa;
-  --card: #09090b;
+  --card: #111113;
   --card-foreground: #fafafa;
-  --popover: #09090b;
+  --popover: #111113;
   --popover-foreground: #fafafa;
   --primary: #fafafa;
   --primary-foreground: #18181b;
-  --secondary: #27272a;
+  --secondary: #1c1c1f;
   --secondary-foreground: #fafafa;
-  --muted: #27272a;
+  --muted: #1c1c1f;
   --muted-foreground: #a1a1aa;
-  --accent: #27272a;
+  --accent: #1c1c1f;
   --accent-foreground: #fafafa;
-  --destructive: #ef4444;
+  --destructive: #f87171;
   --border: #27272a;
   --input: #27272a;
   --ring: #d4d4d8;
+
+  --shadow-xs: 0 1px 2px 0 rgba(0,0,0,0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.35), 0 1px 2px -1px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.35), 0 2px 4px -2px rgba(0,0,0,0.25);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.35), 0 4px 6px -4px rgba(0,0,0,0.2);
 }
 
 @theme inline {
@@ -75,17 +87,21 @@ body {
   font-size: 0.875rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'ss01' 1;
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; transition: background 0.2s; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 
 /* Focus ring */
 *:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* React Select overrides */
@@ -95,15 +111,16 @@ body {
   min-height: 36px !important;
   box-shadow: none !important;
   background: var(--background) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 .react-select__control--is-focused {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 1px var(--primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent) !important;
 }
 .react-select__menu {
   border: 1px solid var(--border) !important;
   border-radius: var(--radius) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 .react-select__option--is-focused {
   background: var(--secondary) !important;
@@ -119,6 +136,7 @@ body {
   border: 1px solid var(--border) !important;
   border-radius: var(--radius) !important;
   font-family: 'Inter', sans-serif !important;
+  box-shadow: var(--shadow-lg) !important;
 }
 .react-datepicker__header {
   background: var(--secondary) !important;
@@ -126,15 +144,20 @@ body {
 }
 .react-datepicker__day--selected {
   background: var(--primary) !important;
+  border-radius: 6px !important;
+}
+.react-datepicker__day:hover {
+  border-radius: 6px !important;
 }
 
 /* React Flow */
 .react-flow__pane { cursor: default; }
+.react-flow__node { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06)); }
 
 /* Canvas dot grid */
 .dot-grid {
   background-color: #f4f4f5;
-  background-image: radial-gradient(#e4e4e7 1px, transparent 1px);
+  background-image: radial-gradient(#d4d4d8 1px, transparent 1px);
   background-size: 24px 24px;
 }
 .dark .dot-grid {
@@ -142,26 +165,166 @@ body {
   background-image: radial-gradient(#27272a 1px, transparent 1px);
 }
 
-/* Smooth transitions for interactive elements */
-.transition-scale { transition: transform 0.15s ease, box-shadow 0.15s ease; }
-.transition-scale:hover { transform: translateY(-1px); }
-.transition-scale:active { transform: scale(0.99); }
+/* ─── Utility animations ─── */
+
+/* Micro-animation: lift on hover */
+.hover-lift {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.hover-lift:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--secondary) 50%, var(--muted) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}
+
+/* Fade-in-up */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.25s ease forwards;
+}
+
+/* Pulse dot */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
 
 /* Dark mode for React Flow */
 .dark .react-flow__background { background: #09090b; }
-.dark .react-flow__controls button { background: #27272a; fill: #fafafa; border-color: #3f3f46; }
+.dark .react-flow__controls button { 
+  background: #1c1c1f; 
+  fill: #fafafa; 
+  border-color: #3f3f46;
+  transition: background 0.15s;
+}
+.dark .react-flow__controls button:hover { background: #27272a; }
 .dark .react-flow__minimap { background: #18181b; }
-.dark .react-flow__edge-path { stroke: #a1a1aa; }
+.dark .react-flow__edge-path { stroke: #71717a; }
 
 /* DatePicker dark overrides */
-.dark .react-datepicker { background: #18181b !important; color: #fafafa !important; }
-.dark .react-datepicker__header { background: #27272a !important; }
+.dark .react-datepicker { background: #111113 !important; color: #fafafa !important; border-color: #27272a !important; }
+.dark .react-datepicker__header { background: #1c1c1f !important; }
 .dark .react-datepicker__day { color: #fafafa !important; }
 .dark .react-datepicker__day:hover { background: #3f3f46 !important; }
+.dark .react-datepicker__current-month { color: #fafafa !important; }
+.dark .react-datepicker__day-name { color: #71717a !important; }
 
 /* Select dark overrides */
-.dark .react-select__control { background: #18181b !important; border-color: #3f3f46 !important; }
-.dark .react-select__menu { background: #18181b !important; border-color: #3f3f46 !important; }
+.dark .react-select__control { background: #111113 !important; border-color: #27272a !important; }
+.dark .react-select__menu { background: #111113 !important; border-color: #27272a !important; }
 .dark .react-select__single-value { color: #fafafa !important; }
 .dark .react-select__input-container { color: #fafafa !important; }
-.dark .react-select__option--is-focused { background: #27272a !important; }
+.dark .react-select__option--is-focused { background: #1c1c1f !important; }
+.dark .react-select__placeholder { color: #71717a !important; }
+
+/* Panel section header */
+.panel-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Toolbar pill nav */
+.toolbar-nav {
+  display: flex;
+  align-items: center;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 1px;
+}
+.toolbar-nav-item {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
+}
+.toolbar-nav-item:hover {
+  color: var(--foreground);
+  background: var(--accent);
+}
+.toolbar-nav-item.active {
+  background: var(--background);
+  color: var(--foreground);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Field palette item */
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  width: 100%;
+  text-align: left;
+  color: var(--foreground);
+  border: 1px solid transparent;
+}
+.palette-item:hover {
+  background: var(--secondary);
+  border-color: var(--border);
+}
+.palette-item:active {
+  transform: scale(0.98);
+}
+.palette-item-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  box-shadow: var(--shadow-xs);
+}
+.palette-item:hover .palette-item-icon {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+.palette-item:hover .palette-item-icon svg {
+  color: var(--primary-foreground);
+}

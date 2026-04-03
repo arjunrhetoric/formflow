@@ -89,12 +89,12 @@ export default function ThemeEditor() {
           </Button>
           <span className="font-bold text-lg">{form.title}</span>
 
-          <div className="flex items-center mx-auto bg-muted/50 p-1 rounded-lg border border-border">
-            <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/builder/${id}`)}>Workshop</Button>
-            <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/logic/${id}`)}>Logic</Button>
-            <Button variant="ghost" className="h-8 bg-background shadow-sm px-4 text-xs font-semibold">Theme</Button>
-            <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/history/${id}`)}>History</Button>
-            <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/vault/${id}`)}>Vault</Button>
+          <div className="toolbar-nav mx-auto">
+            <button className="toolbar-nav-item" onClick={() => router.push(`/builder/${id}`)}>Workshop</button>
+            <button className="toolbar-nav-item" onClick={() => router.push(`/logic/${id}`)}>Logic</button>
+            <button className="toolbar-nav-item active">Theme</button>
+            <button className="toolbar-nav-item" onClick={() => router.push(`/history/${id}`)}>History</button>
+            <button className="toolbar-nav-item" onClick={() => router.push(`/vault/${id}`)}>Vault</button>
           </div>
         </div>
 

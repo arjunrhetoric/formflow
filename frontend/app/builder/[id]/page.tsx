@@ -569,12 +569,12 @@ export default function WorkshopBuilder() {
             </div>
 
             {/* Nav tabs */}
-            <div className="flex items-center mx-auto bg-muted/50 p-1 rounded-lg border border-border">
-              <Button variant="ghost" className="h-8 bg-background shadow-sm px-4 text-xs font-semibold">Workshop</Button>
-              <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/logic/${id}`)}>Logic</Button>
-              <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/theme/${id}`)}>Theme</Button>
-              <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/history/${id}`)}>History</Button>
-              <Button variant="ghost" className="h-8 px-4 text-xs text-muted-foreground" onClick={() => router.push(`/vault/${id}`)}>Vault</Button>
+            <div className="toolbar-nav mx-auto">
+              <button className="toolbar-nav-item active">Workshop</button>
+              <button className="toolbar-nav-item" onClick={() => router.push(`/logic/${id}`)}>Logic</button>
+              <button className="toolbar-nav-item" onClick={() => router.push(`/theme/${id}`)}>Theme</button>
+              <button className="toolbar-nav-item" onClick={() => router.push(`/history/${id}`)}>History</button>
+              <button className="toolbar-nav-item" onClick={() => router.push(`/vault/${id}`)}>Vault</button>
             </div>
 
             {/* Undo/Redo */}
@@ -620,10 +620,10 @@ export default function WorkshopBuilder() {
                     <button
                       key={item.type}
                       onClick={() => addField(item.type, item.label)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-muted font-medium transition-colors text-left w-full group"
+                      className="palette-item group"
                     >
-                      <div className="h-7 w-7 rounded-md bg-muted group-hover:bg-background flex items-center justify-center shrink-0 transition-colors">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div className="palette-item-icon">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary-foreground transition-colors" />
                       </div>
                       {item.label}
                     </button>

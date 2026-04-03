@@ -65,7 +65,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           {links.map((li) => {
             const active = pathname === li.href;
             return (
-              <Link key={li.label} href={li.href} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'}`}>
+              <Link key={li.label} href={li.href} className={`flex items-center gap-3 rounded-[0.5rem] px-3 py-2.5 text-sm font-medium transition-all duration-200 ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary hover:text-foreground hover:shadow-xs hover:-translate-y-[1px]'}`}>
                 <li.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>{li.label}</span>}
               </Link>
