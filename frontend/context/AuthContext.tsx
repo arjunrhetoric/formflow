@@ -58,14 +58,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await authApi.login(email, password);
     localStorage.setItem('formflow_token', res.data.token);
     setUser(normalizeUser(res.data.user));
-    router.push('/dashboard');
+    const pendingInvite = localStorage.getItem('formflow_pending_invite');
+    if (pendingInvite) {
+      localStorage.removeItem('formflow_pending_invite');
+      router.push(`/invite/${pendingInvite}`);
+    } else {
+      router.push('/dashboard');
+    }
   }, [router]);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const res = await authApi.register(name, email, password);
     localStorage.setItem('formflow_token', res.data.token);
     setUser(normalizeUser(res.data.user));
-    router.push('/dashboard');
+    const pendingInvite = localStorage.getItem('formflow_pending_invite');
+    if (pendingInvite) {
+      localStorage.removeItem('formflow_pending_invite');
+      router.push(`/invite/${pendingInvite}`);
+    } else {
+      router.push('/dashboard');
+    }
   }, [router]);
 
   const logout = useCallback(() => {

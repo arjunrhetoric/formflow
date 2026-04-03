@@ -3,9 +3,11 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getPublicForm, submitForm } from '@/lib/api/public';
+import * as authApi from '@/lib/api/auth';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { FieldComponents } from '@/components/fields';
-import { CheckCircle, Loader2, Send } from 'lucide-react';
+import { CheckCircle, Loader2, Send, LogIn, UserPlus } from 'lucide-react';
 
 /* ───── Theme Preset CSS ───── */
 const THEME_PRESETS: Record<string, { bodyClass: string; cardClass: string; css: string }> = {
@@ -100,9 +102,22 @@ export default function StagePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const startTimeRef = useRef(Date.now());
 
+  // Auth state for signup-gated forms
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
   useEffect(() => {
     getPublicForm(slug).then((r) => setForm(r.data.form)).catch(console.error);
     startTimeRef.current = Date.now();
+    // Check if already logged in
+    const token = typeof window !== 'undefined' ? localStorage.getItem('formflow_token') : null;
+    if (token) setIsAuthed(true);
   }, [slug]);
 
   const hiddenFields = useMemo(() => {
@@ -125,6 +140,13 @@ export default function StagePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // If signup is required and user is not authed, show auth modal
+    if (form?.requireSignupToSubmit && !isAuthed) {
+      setShowAuth(true);
+      return;
+    }
+
     setLoading(true);
     setErrors({});
 
@@ -133,6 +155,10 @@ export default function StagePage() {
       await submitForm(slug, answers, completionTime);
       setSubmitted(true);
     } catch (err: any) {
+      if (err.response?.status === 401 && form?.requireSignupToSubmit) {
+        setShowAuth(true);
+        return;
+      }
       const serverErrors = err.response?.data?.errors;
       if (serverErrors && typeof serverErrors === 'object') {
         setErrors(serverErrors);
@@ -141,6 +167,43 @@ export default function StagePage() {
       }
     }
     setLoading(false);
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      let res;
+      if (authMode === 'login') {
+        res = await authApi.login(authEmail, authPassword);
+      } else {
+        res = await authApi.register(authName, authEmail, authPassword);
+      }
+      localStorage.setItem('formflow_token', res.data.token);
+      setIsAuthed(true);
+      setShowAuth(false);
+      // Auto-submit after auth
+      setLoading(true);
+      setErrors({});
+      try {
+        const completionTime = Math.round((Date.now() - startTimeRef.current) / 1000);
+        await submitForm(slug, answers, completionTime);
+        setSubmitted(true);
+      } catch (submitErr: any) {
+        const serverErrors = submitErr.response?.data?.errors;
+        if (serverErrors && typeof serverErrors === 'object') {
+          setErrors(serverErrors);
+        } else {
+          setErrors({ _form: submitErr.response?.data?.message || 'Error submitting form' });
+        }
+      }
+      setLoading(false);
+    } catch (err: any) {
+      setAuthError(err.response?.data?.message || 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   // Theme
@@ -269,6 +332,103 @@ export default function StagePage() {
           Powered by <span className="font-semibold">FormFlow</span>
         </div>
       </div>
+
+      {/* Auth Modal for signup-gated forms */}
+      <AnimatePresence>
+        {showAuth && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAuth(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 border border-[#e4e4e7]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-6">
+                <div className="inline-flex h-12 w-12 rounded-2xl bg-[#18181b]/10 items-center justify-center mb-4">
+                  {authMode === 'login' ? <LogIn className="h-5 w-5 text-[#18181b]" /> : <UserPlus className="h-5 w-5 text-[#18181b]" />}
+                </div>
+                <h2 className="text-xl font-bold text-[#09090b]">
+                  {authMode === 'login' ? 'Sign in to submit' : 'Create account to submit'}
+                </h2>
+                <p className="text-sm text-[#71717a] mt-1">
+                  This form requires an account to submit your response.
+                </p>
+              </div>
+
+              {authError && (
+                <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium border border-red-200">
+                  {authError}
+                </div>
+              )}
+
+              <form onSubmit={handleAuth} className="flex flex-col gap-3">
+                {authMode === 'register' && (
+                  <div>
+                    <label className="text-sm font-medium text-[#09090b] mb-1.5 block">Name</label>
+                    <Input
+                      placeholder="Your name"
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-[#09090b] mb-1.5 block">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-[#09090b] mb-1.5 block">Password</label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                <Button type="submit" disabled={authLoading} className="w-full mt-2 h-11">
+                  {authLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : authMode === 'login' ? (
+                    'Sign In & Submit'
+                  ) : (
+                    'Create Account & Submit'
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-4 text-center text-sm">
+                <span className="text-[#71717a]">
+                  {authMode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+                </span>{' '}
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); }}
+                  className="text-[#18181b] font-semibold hover:underline"
+                >
+                  {authMode === 'login' ? 'Sign up' : 'Sign in'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

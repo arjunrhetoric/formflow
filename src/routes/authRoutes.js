@@ -87,4 +87,53 @@ router.get(
   })
 );
 
+// Update profile (name, cursorColor)
+router.put(
+  "/profile",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { name, cursorColor } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) throw new AppError(404, "User not found");
+
+    if (name) user.name = name.trim();
+    if (cursorColor && /^#[0-9a-fA-F]{6}$/.test(cursorColor)) {
+      user.cursorColor = cursorColor;
+    }
+
+    await user.save();
+    res.json({ user: userResponse(user) });
+  })
+);
+
+// Change password
+router.put(
+  "/password",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      throw new AppError(400, "currentPassword and newPassword are required");
+    }
+    if (newPassword.length < 6) {
+      throw new AppError(400, "New password must be at least 6 characters");
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) throw new AppError(404, "User not found");
+
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new AppError(401, "Current password is incorrect");
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  })
+);
+
 module.exports = router;
+

@@ -30,7 +30,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
   const links = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard', label: 'My Forms', icon: FileText },
-    { href: '#', label: 'Settings', icon: Settings },
+    { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
   const initials = user?.name

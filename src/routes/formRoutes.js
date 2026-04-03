@@ -3,6 +3,7 @@ const { requireAuth } = require("../middleware/auth");
 const { asyncHandler } = require("../utils/asyncHandler");
 const { AppError } = require("../utils/appError");
 const { Form } = require("../models/Form");
+const { User } = require("../models/User");
 const { Response } = require("../models/Response");
 const { FormHistory } = require("../models/FormHistory");
 const { createForm, getAccessibleForm, restoreForm, updateForm } = require("../services/formService");
@@ -195,4 +196,164 @@ router.get(
   })
 );
 
+/* ───── Collaborator management ───── */
+
+// List collaborators with user details
+router.get(
+  "/:id/collaborators",
+  asyncHandler(async (req, res) => {
+    const form = await getAccessibleForm(req.params.id, req.user._id);
+    const populated = await Form.findById(form._id)
+      .populate("collaborators", "name email cursorColor avatar_url")
+      .lean();
+
+    const owner = await User.findById(form.ownerId)
+      .select("name email cursorColor avatar_url")
+      .lean();
+
+    res.json({
+      owner: owner ? {
+        _id: owner._id,
+        name: owner.name,
+        email: owner.email,
+        cursorColor: owner.cursorColor,
+        avatar_url: owner.avatar_url,
+        role: "owner"
+      } : null,
+      collaborators: (populated?.collaborators || []).map((c) => ({
+        _id: c._id,
+        name: c.name,
+        email: c.email,
+        cursorColor: c.cursorColor,
+        avatar_url: c.avatar_url,
+        role: "collaborator"
+      })),
+      shareToken: form.shareToken,
+      requireSignupToSubmit: form.requireSignupToSubmit || false
+    });
+  })
+);
+
+// Add a collaborator by email
+router.post(
+  "/:id/collaborators",
+  asyncHandler(async (req, res) => {
+    const form = await getAccessibleForm(req.params.id, req.user._id);
+    const { email } = req.body;
+
+    if (!email) {
+      throw new AppError(400, "email is required");
+    }
+
+    const userToAdd = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!userToAdd) {
+      throw new AppError(404, "No user found with that email. They need to sign up first.");
+    }
+
+    if (form.ownerId.toString() === userToAdd._id.toString()) {
+      throw new AppError(400, "This user is already the owner of the form");
+    }
+
+    if (form.collaborators.some((c) => c.toString() === userToAdd._id.toString())) {
+      throw new AppError(409, "This user is already a collaborator");
+    }
+
+    form.collaborators.push(userToAdd._id);
+    await form.save();
+
+    res.json({
+      collaborator: {
+        _id: userToAdd._id,
+        name: userToAdd.name,
+        email: userToAdd.email,
+        cursorColor: userToAdd.cursorColor,
+        avatar_url: userToAdd.avatar_url,
+        role: "collaborator"
+      }
+    });
+  })
+);
+
+// Remove a collaborator
+router.delete(
+  "/:id/collaborators/:userId",
+  asyncHandler(async (req, res) => {
+    const form = await getAccessibleForm(req.params.id, req.user._id);
+
+    // Only the owner can remove collaborators
+    if (form.ownerId.toString() !== req.user._id.toString()) {
+      throw new AppError(403, "Only the form owner can remove collaborators");
+    }
+
+    form.collaborators = form.collaborators.filter(
+      (c) => c.toString() !== req.params.userId
+    );
+    await form.save();
+    res.status(204).send();
+  })
+);
+
+// Join form via share token (auto-add as collaborator)
+router.post(
+  "/join/:shareToken",
+  asyncHandler(async (req, res) => {
+    const form = await Form.findOne({ shareToken: req.params.shareToken });
+    if (!form) {
+      throw new AppError(404, "Invalid or expired invite link");
+    }
+
+    const userId = req.user._id.toString();
+
+    if (form.ownerId.toString() === userId) {
+      return res.json({ form: { _id: form._id, title: form.title }, alreadyMember: true });
+    }
+
+    if (form.collaborators.some((c) => c.toString() === userId)) {
+      return res.json({ form: { _id: form._id, title: form.title }, alreadyMember: true });
+    }
+
+    form.collaborators.push(req.user._id);
+    await form.save();
+
+    res.json({
+      form: { _id: form._id, title: form.title },
+      alreadyMember: false,
+      message: "You have been added as a collaborator"
+    });
+  })
+);
+
+// Regenerate share token
+router.post(
+  "/:id/regenerate-token",
+  asyncHandler(async (req, res) => {
+    const form = await getAccessibleForm(req.params.id, req.user._id);
+
+    if (form.ownerId.toString() !== req.user._id.toString()) {
+      throw new AppError(403, "Only the form owner can regenerate the share token");
+    }
+
+    form.shareToken = require("../models/Form").generateShareToken();
+    await form.save();
+
+    res.json({ shareToken: form.shareToken });
+  })
+);
+
+// Toggle requireSignupToSubmit
+router.patch(
+  "/:id/settings",
+  asyncHandler(async (req, res) => {
+    const form = await getAccessibleForm(req.params.id, req.user._id);
+
+    if (req.body.requireSignupToSubmit !== undefined) {
+      form.requireSignupToSubmit = !!req.body.requireSignupToSubmit;
+    }
+
+    await form.save();
+    res.json({ form });
+  })
+);
+
 module.exports = router;
+

@@ -1,4 +1,9 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
+
+function generateShareToken() {
+  return crypto.randomBytes(24).toString("base64url");
+}
 
 const logicRuleSchema = new mongoose.Schema(
   {
@@ -66,6 +71,16 @@ const formSchema = new mongoose.Schema(
     fields: {
       type: [fieldSchema],
       default: []
+    },
+    shareToken: {
+      type: String,
+      default: generateShareToken,
+      unique: true,
+      index: true
+    },
+    requireSignupToSubmit: {
+      type: Boolean,
+      default: false
     }
   },
   {
@@ -75,4 +90,4 @@ const formSchema = new mongoose.Schema(
 
 const Form = mongoose.model("Form", formSchema);
 
-module.exports = { Form };
+module.exports = { Form, generateShareToken };

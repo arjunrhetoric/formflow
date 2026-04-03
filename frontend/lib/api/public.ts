@@ -4,6 +4,17 @@ const publicApi = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
 });
 
+// Attach auth token if available (needed for signup-gated form submissions)
+publicApi.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('formflow_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 export const getPublicForm = (slug: string) =>
   publicApi.get(`/api/public/forms/${slug}`);
 

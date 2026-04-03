@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { RemoteCursors } from '@/components/RemoteCursors';
 import { PresenceAvatars } from '@/components/PresenceAvatars';
+import { ShareDialog } from '@/components/ShareDialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
@@ -316,7 +317,7 @@ export default function WorkshopBuilder() {
   const [fields, setFields] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState<any[][]>([]);
@@ -533,11 +534,7 @@ export default function WorkshopBuilder() {
 
   const selectedField = fields.find((f) => f.id === selectedId);
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.origin + `/f/${form.slug}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+
 
   return (
     <AuthGuard>
@@ -596,9 +593,9 @@ export default function WorkshopBuilder() {
                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 text-green-600" />}
                 {saving ? 'Saving...' : 'Saved'}
               </div>
-              <Button variant="outline" className="h-8 text-xs" onClick={handleCopyLink}>
+              <Button variant="outline" className="h-8 text-xs" onClick={() => setShareOpen(true)}>
                 <LinkIcon className="h-3 w-3 mr-1.5" />
-                {copied ? 'Copied!' : 'Share'}
+                Share
               </Button>
               <Button className="h-8 text-xs" onClick={() => window.open(`/f/${form.slug}`, '_blank')}>
                 Preview
@@ -695,6 +692,15 @@ export default function WorkshopBuilder() {
               )}
             </div>
           </div>
+
+          {/* Share Dialog */}
+          <ShareDialog
+            open={shareOpen}
+            onClose={() => setShareOpen(false)}
+            formId={id}
+            formSlug={form.slug}
+            currentUserId={user?._id}
+          />
         </div>
       )}
     </AuthGuard>
