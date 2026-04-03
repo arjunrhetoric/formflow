@@ -132,7 +132,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-[520px] p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[520px] !p-0 !gap-0 overflow-hidden">
         <DialogTitle className="sr-only">Share Form</DialogTitle>
 
         {/* Tabs */}
@@ -223,8 +223,8 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
               <p className="text-xs text-muted-foreground mb-2">
                 Anyone with this link can join as a collaborator (requires login).
               </p>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-muted rounded-lg px-3 py-2 text-xs font-mono text-muted-foreground truncate border border-border">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center bg-muted rounded-lg px-3 h-9 text-xs font-mono text-muted-foreground truncate border border-border">
                   {collabUrl}
                 </div>
                 <Button
@@ -326,13 +326,13 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
               <p className="text-xs text-muted-foreground mb-2">
                 Share this link with respondents to fill out the form.
               </p>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-muted rounded-lg px-3 py-2 text-xs font-mono text-muted-foreground truncate border border-border">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center bg-muted rounded-lg px-3 h-9 text-xs font-mono text-muted-foreground truncate border border-border">
                   {publicUrl}
                 </div>
                 <Button
                   variant="outline"
-                  className="shrink-0"
+                  className="shrink-0 h-9"
                   onClick={() => copyToClipboard(publicUrl, 'public')}
                 >
                   {copiedLink === 'public' ? (

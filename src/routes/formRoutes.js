@@ -203,6 +203,12 @@ router.get(
   "/:id/collaborators",
   asyncHandler(async (req, res) => {
     const form = await getAccessibleForm(req.params.id, req.user._id);
+
+    if (!form.shareToken) {
+      form.shareToken = require("../models/Form").generateShareToken();
+      await form.save();
+    }
+
     const populated = await Form.findById(form._id)
       .populate("collaborators", "name email cursorColor avatar_url")
       .lean();

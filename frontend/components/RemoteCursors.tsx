@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface CursorData {
   userId: string;
+  clientId: string;
   name: string;
   x: number;
   y: number;
@@ -12,19 +13,19 @@ interface CursorData {
 
 interface RemoteCursorsProps {
   cursors: Record<string, CursorData>;
-  currentUserId?: string;
+  currentSocketId?: string;
 }
 
-export function RemoteCursors({ cursors, currentUserId }: RemoteCursorsProps) {
+export function RemoteCursors({ cursors, currentSocketId }: RemoteCursorsProps) {
   const entries = Object.values(cursors).filter(
-    (c) => c.userId !== currentUserId && c.x !== undefined && c.y !== undefined
+    (c) => c.clientId !== currentSocketId && c.x !== undefined && c.y !== undefined
   );
 
   return (
     <AnimatePresence>
       {entries.map((cursor) => (
         <motion.div
-          key={cursor.userId}
+          key={cursor.clientId}
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.5 }}

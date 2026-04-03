@@ -186,10 +186,16 @@ function PropertiesPanel({ field, onChange, onOpenLogic }: {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Options (comma separated)</label>
             <Input
-              value={(config.options || []).map((o: any) => typeof o === 'string' ? o : o.label).join(', ')}
+              value={config._rawOptions ?? (config.options || []).map((o: any) => typeof o === 'string' ? o : o.label).join(', ')}
               onChange={(e) => {
-                const options = e.target.value.split(',').map((v) => v.trim()).filter(Boolean);
-                onChange({ config: { ...config, options } });
+                const raw = e.target.value;
+                const options = raw.split(',').map((v) => v.trim()).filter(Boolean);
+                onChange({ config: { ...config, options, _rawOptions: raw } });
+              }}
+              onBlur={() => {
+                const clean = { ...config };
+                delete clean._rawOptions;
+                onChange({ config: clean });
               }}
             />
           </div>
@@ -226,9 +232,18 @@ function PropertiesPanel({ field, onChange, onOpenLogic }: {
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Allowed Types (comma separated)</label>
             <Input
-              value={(config.allowed_types || []).join(', ')}
+              value={config._rawAllowedTypes ?? (config.allowed_types || []).join(', ')}
               placeholder="pdf, jpg, png"
-              onChange={(e) => onChange({ config: { ...config, allowed_types: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) } })}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const types = raw.split(',').map((v) => v.trim()).filter(Boolean);
+                onChange({ config: { ...config, allowed_types: types, _rawAllowedTypes: raw } });
+              }}
+              onBlur={() => {
+                const clean = { ...config };
+                delete clean._rawAllowedTypes;
+                onChange({ config: clean });
+              }}
             />
           </div>
         </>
@@ -305,13 +320,13 @@ function PropertiesPanel({ field, onChange, onOpenLogic }: {
   );
 }
 
-/* ───── Main Builder ───── */
+import { useCollaborativeArea } from '@/hooks/useCollaborativeArea';
+
 export default function WorkshopBuilder() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
   const { user } = useAuth();
-  const { emit, on } = useSocket(id);
-  const canvasRef = useRef<HTMLDivElement>(null);
+
 
   const [form, setForm] = useState<any>(null);
   const [fields, setFields] = useState<any[]>([]);
@@ -322,10 +337,6 @@ export default function WorkshopBuilder() {
   // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState<any[][]>([]);
   const [redoStack, setRedoStack] = useState<any[][]>([]);
-
-  // Presence & Cursors
-  const [remoteCursors, setRemoteCursors] = useState<Record<string, any>>({});
-  const [presenceList, setPresenceList] = useState<any[]>([]);
 
   const pushUndo = useCallback((snapshot: any[]) => {
     setUndoStack((s) => [...s.slice(-49), snapshot]);
@@ -343,63 +354,7 @@ export default function WorkshopBuilder() {
 
   useEffect(() => { loadForm(); }, [loadForm]);
 
-  // Socket events
-  useEffect(() => {
-    if (!user?._id) return;
-    emit('form:join', { formId: id });
-
-    const offPatched = on('form:patched', (payload: any) => {
-      if (payload?.actorId && payload.actorId === user._id) return;
-      loadForm();
-    });
-
-    const offJoined = on('presence:joined', (data: any) => {
-      setPresenceList((prev) => {
-        if (prev.some((u) => u.userId === data.userId)) return prev;
-        return [...prev, data];
-      });
-    });
-
-    const offLeft = on('presence:left', (data: any) => {
-      setPresenceList((prev) => prev.filter((u) => u.userId !== data.userId));
-      setRemoteCursors((prev) => {
-        const next = { ...prev };
-        delete next[data.userId];
-        return next;
-      });
-    });
-
-    const offSnapshot = on('presence:snapshot', (data: any) => {
-      if (data.presence) setPresenceList(data.presence);
-    });
-
-    const offCursor = on('cursor:moved', (data: any) => {
-      setRemoteCursors((prev) => ({ ...prev, [data.userId]: data }));
-    });
-
-    return () => { offPatched(); offJoined(); offLeft(); offSnapshot(); offCursor(); };
-  }, [emit, id, loadForm, on, user?._id]);
-
-  // Cursor tracking
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !user) return;
-
-    let lastEmit = 0;
-    const handleMouseMove = (e: MouseEvent) => {
-      const now = Date.now();
-      if (now - lastEmit < 33) return; // ~30fps throttle
-      lastEmit = now;
-      emit('cursor:move', {
-        x: e.clientX,
-        y: e.clientY,
-        color: (user as any).cursorColor || '#2563eb',
-      });
-    };
-
-    canvas.addEventListener('mousemove', handleMouseMove);
-    return () => canvas.removeEventListener('mousemove', handleMouseMove);
-  }, [emit, user]);
+  const { canvasRef, remoteCursors, presenceList, socketId, emit } = useCollaborativeArea(id, loadForm);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -544,6 +499,7 @@ export default function WorkshopBuilder() {
         </div>
       ) : (
         <div ref={canvasRef} className="flex flex-col h-screen bg-background overflow-hidden">
+          <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
           {/* ─── Toolbar ─── */}
           <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-3">
             <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
@@ -631,7 +587,6 @@ export default function WorkshopBuilder() {
 
             {/* Center: Canvas */}
             <div className="flex-1 dot-grid overflow-y-auto p-8 relative">
-              <RemoteCursors cursors={remoteCursors} currentUserId={user?._id} />
               <div className="max-w-2xl mx-auto bg-card rounded-xl shadow-sm border border-border min-h-[500px] p-8 pb-16 relative">
                 <h1 className="text-3xl font-bold tracking-tight mb-8 break-words leading-tight">{form.title}</h1>
 

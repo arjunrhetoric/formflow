@@ -19,24 +19,66 @@ const PRESETS = [
     id: 'bold',
     label: 'Bold',
     desc: 'Dark bg, vivid colors, large type',
-    css: 'body { background: #09090b; color: white; }',
+    css: `
+      .ff-stage label { color: #fafafa; }
+      .ff-stage .text-muted-foreground { color: #a1a1aa; }
+      .ff-stage input, .ff-stage textarea, .ff-stage select {
+        background: #27272a; border-color: #3f3f46; color: #fafafa;
+      }
+      .ff-stage input::placeholder, .ff-stage textarea::placeholder { color: #71717a; }
+    `,
     preview: { bg: '#09090b', accent: '#8b5cf6', text: '#ffffff' },
   },
   {
     id: 'glassmorphism',
     label: 'Glassmorphism',
     desc: 'Frosted glass, gradient backdrop',
-    css: '.ff-stage-card { backdrop-filter: blur(12px); background: rgba(255,255,255,0.7); }',
+    css: `
+      .ff-stage label { color: #ffffff; }
+      .ff-stage .text-muted-foreground { color: rgba(255,255,255,0.7); }
+      .ff-stage input, .ff-stage textarea, .ff-stage select {
+        background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: #ffffff;
+      }
+      .ff-stage input::placeholder, .ff-stage textarea::placeholder { color: rgba(255,255,255,0.5); }
+      .ff-stage button[type="submit"] { background: rgba(255,255,255,0.25); backdrop-filter: blur(8px); }
+    `,
     preview: { bg: 'linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4)', accent: '#ffffff', text: '#ffffff' },
   },
   {
     id: 'corporate',
     label: 'Corporate',
     desc: 'Navy + white, serif typography',
-    css: 'body { font-family: Georgia, serif; }',
+    css: `
+      .ff-stage { font-family: Georgia, 'Times New Roman', serif; }
+      .ff-stage h1 { color: #1e3a5f; }
+      .ff-stage button[type="submit"] { background: #1e3a5f; }
+    `,
     preview: { bg: '#f0f2f5', accent: '#1e3a5f', text: '#1e3a5f' },
   },
 ];
+
+const CSS_PLACEHOLDER = `/* ─── FormFlow CSS Reference ───
+ *
+ * Available selectors:
+ *   .ff-stage              → outer page wrapper
+ *   .ff-stage h1           → form title
+ *   .ff-stage label        → field labels
+ *   .ff-stage input        → text / number inputs
+ *   .ff-stage textarea     → long text fields
+ *   .ff-stage select       → dropdown selects
+ *   .ff-stage button[type="submit"] → submit button
+ *   .ff-stage .text-muted-foreground → helper text
+ *
+ * Example:
+ *   .ff-stage { font-family: 'Comic Sans MS'; }
+ *   .ff-stage h1 { color: hotpink; }
+ *   .ff-stage input { border-radius: 999px; }
+ */
+`;
+
+import { useCollaborativeArea } from '@/hooks/useCollaborativeArea';
+import { RemoteCursors } from '@/components/RemoteCursors';
+import { PresenceAvatars } from '@/components/PresenceAvatars';
 
 export default function ThemeEditor() {
   const { id } = useParams() as { id: string };
@@ -47,12 +89,14 @@ export default function ThemeEditor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const { canvasRef, remoteCursors, presenceList, socketId } = useCollaborativeArea(id);
+
   useEffect(() => {
     getForm(id).then((r) => {
       const nextForm = r.data.form;
       setForm(nextForm);
       setActivePreset(nextForm.theme?.preset || 'minimal');
-      setCss(nextForm.theme?.custom_css || '');
+      setCss(nextForm.theme?.custom_css || CSS_PLACEHOLDER);
     });
   }, [id]);
 
@@ -81,7 +125,8 @@ export default function ThemeEditor() {
 
   return (
     <AuthGuard>
-      <div className="flex flex-col h-screen bg-background overflow-hidden">
+      <div ref={canvasRef} className="flex flex-col h-screen bg-background overflow-hidden relative">
+        <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
         {/* Toolbar */}
         <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
@@ -95,6 +140,10 @@ export default function ThemeEditor() {
             <button className="toolbar-nav-item active">Theme</button>
             <button className="toolbar-nav-item" onClick={() => router.push(`/history/${id}`)}>History</button>
             <button className="toolbar-nav-item" onClick={() => router.push(`/vault/${id}`)}>Vault</button>
+          </div>
+
+          <div className="ml-auto w-48 flex justify-end">
+            <PresenceAvatars users={presenceList} />
           </div>
         </div>
 
@@ -150,7 +199,6 @@ export default function ThemeEditor() {
                 className="flex-1 w-full rounded-xl border border-input bg-muted/30 px-4 py-3 text-xs font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none min-h-[200px]"
                 value={css}
                 onChange={(e) => setCss(e.target.value)}
-                placeholder="/* Add your custom CSS here */&#10;body { }&#10;.ff-stage { }"
                 spellCheck={false}
               />
               <Button className="w-full mt-4" onClick={handleApply} disabled={saving}>
@@ -166,60 +214,71 @@ export default function ThemeEditor() {
           </div>
 
           {/* Right: Live Preview */}
-          <div className="flex-1 bg-muted p-8 overflow-y-auto flex flex-col items-center">
-            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-6">
-              Live Preview — {currentPreset.label}
-            </div>
-
+          <div className="flex-1 overflow-y-auto">
             <div
-              className="w-full max-w-2xl rounded-2xl p-8 min-h-[400px]"
-              style={{
-                background: currentPreset.preview.bg,
-                border: `1px solid ${activePreset === 'bold' ? '#27272a' : '#e4e4e7'}`,
-                boxShadow: '0 24px 48px rgba(0,0,0,0.12)',
-              }}
+              className="p-8 flex flex-col items-center min-h-full"
+              style={{ background: currentPreset.preview.bg }}
             >
-              <h1
-                className="text-3xl font-bold mb-8"
-                style={{ color: currentPreset.preview.text, fontFamily: activePreset === 'corporate' ? 'Georgia, serif' : 'Inter, sans-serif' }}
-              >
-                {form.title}
-              </h1>
+              {/* Inject preset + custom CSS into the live preview */}
+              <style dangerouslySetInnerHTML={{ __html: currentPreset.css + '\n' + css }} />
 
-              {/* Render actual form fields in preview */}
-              <div className="space-y-6 pointer-events-none opacity-80">
-                {(form.fields || []).slice(0, 4).map((f: any) => {
-                  const Comp = FieldComponents[f.type] || FieldComponents.short_text;
-                  const options = Array.isArray(f.config?.options)
-                    ? f.config.options.map((o: any) => typeof o === 'string' ? { label: o, value: o } : o)
-                    : [];
-                  return (
-                    <div key={f.id}>
-                      <Comp
-                        label={f.label}
-                        required={!!f.validation?.required}
-                        disabled
-                        options={options}
-                        placeholder={f.config?.placeholder}
-                        maxStars={f.config?.max_stars}
-                      />
-                    </div>
-                  );
-                })}
-                {(form.fields || []).length === 0 && (
-                  <div className="text-center py-12 opacity-50" style={{ color: currentPreset.preview.text }}>
-                    Add fields in the Workshop to preview them here
-                  </div>
-                )}
+              <div className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: currentPreset.preview.text, opacity: 0.5 }}>
+                Live Preview — {currentPreset.label}
               </div>
 
-              {/* Submit button preview */}
-              <div className="mt-8 pt-6 border-t" style={{ borderColor: activePreset === 'bold' ? '#3f3f46' : '#e4e4e7' }}>
-                <div
-                  className="h-12 w-full rounded-xl flex items-center justify-center text-sm font-semibold"
-                  style={{ backgroundColor: currentPreset.preview.accent, color: activePreset === 'minimal' || activePreset === 'corporate' ? '#ffffff' : currentPreset.preview.bg.startsWith('#') ? currentPreset.preview.bg : '#000' }}
+              <div
+                className="ff-stage w-full max-w-2xl rounded-2xl p-8 sm:p-12 min-h-[400px]"
+                style={{
+                  background: activePreset === 'glassmorphism' ? 'rgba(255,255,255,0.2)' : activePreset === 'bold' ? '#18181b' : '#ffffff',
+                  backdropFilter: activePreset === 'glassmorphism' ? 'blur(16px)' : undefined,
+                  border: `1px solid ${activePreset === 'bold' ? '#27272a' : activePreset === 'glassmorphism' ? 'rgba(255,255,255,0.3)' : '#e4e4e7'}`,
+                  boxShadow: '0 24px 48px rgba(0,0,0,0.12)',
+                }}
+              >
+                <h1
+                  className="text-3xl font-bold mb-8"
+                  style={{ color: currentPreset.preview.text, fontFamily: activePreset === 'corporate' ? 'Georgia, serif' : 'Inter, sans-serif' }}
                 >
-                  Submit
+                  {form.title}
+                </h1>
+
+                {/* Render ALL form fields in preview */}
+                <div className="space-y-6">
+                  {(form.fields || []).map((f: any) => {
+                    const Comp = FieldComponents[f.type] || FieldComponents.short_text;
+                    const options = Array.isArray(f.config?.options)
+                      ? f.config.options.map((o: any) => typeof o === 'string' ? { label: o, value: o } : o)
+                      : [];
+                    return (
+                      <div key={f.id}>
+                        <Comp
+                          label={f.label}
+                          required={!!f.validation?.required}
+                          disabled
+                          options={options}
+                          placeholder={f.config?.placeholder}
+                          maxStars={f.config?.max_stars}
+                        />
+                      </div>
+                    );
+                  })}
+                  {(form.fields || []).length === 0 && (
+                    <div className="text-center py-12 opacity-50" style={{ color: currentPreset.preview.text }}>
+                      Add fields in the Workshop to preview them here
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit button preview */}
+                <div className="mt-8 pt-6 border-t" style={{ borderColor: activePreset === 'bold' ? '#3f3f46' : '#e4e4e7' }}>
+                  <button
+                    type="submit"
+                    className="h-12 w-full rounded-xl flex items-center justify-center text-sm font-semibold"
+                    style={{ backgroundColor: currentPreset.preview.accent, color: activePreset === 'minimal' || activePreset === 'corporate' ? '#ffffff' : currentPreset.preview.bg.startsWith('#') ? currentPreset.preview.bg : '#000' }}
+                    disabled
+                  >
+                    Submit
+                  </button>
                 </div>
               </div>
             </div>

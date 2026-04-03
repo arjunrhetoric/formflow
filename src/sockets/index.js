@@ -40,6 +40,7 @@ function attachSocketServer(server) {
       const formId = data?.formId;
       if (!formId) return;
 
+      console.log(`[socket] ${socket.id} joining room ${formId}`, authenticatedUser?.name || 'anon');
       socket.join(formId);
 
       if (authenticatedUser) {
@@ -70,10 +71,14 @@ function attachSocketServer(server) {
     /* ───── cursor:move ───── */
     socket.on("cursor:move", async (data) => {
       const member = roomMembers.get(socket.id);
-      if (!member) return;
+      if (!member) {
+        console.log(`[socket] cursor:move from unknown socket ${socket.id}`);
+        return;
+      }
 
       const cursorData = {
         userId: member.userId,
+        clientId: socket.id,
         name: member.name,
         color: data?.color || member.color,
         x: data?.x || 0,
@@ -149,6 +154,7 @@ function attachSocketServer(server) {
         // Notify others
         socket.to(member.formId).emit("presence:left", {
           userId: member.userId,
+          clientId: socket.id,
           name: member.name,
         });
 

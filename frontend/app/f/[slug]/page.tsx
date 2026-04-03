@@ -222,7 +222,7 @@ export default function StagePage() {
   if (submitted) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center p-8 text-center ${theme.bodyClass}`}>
-        <style dangerouslySetInnerHTML={{ __html: theme.css + customCss }} />
+        <style dangerouslySetInnerHTML={{ __html: theme.css + '\n' + customCss }} />
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -249,7 +249,7 @@ export default function StagePage() {
 
   return (
     <div className={`ff-stage min-h-screen py-12 px-4 sm:px-8 flex flex-col items-center ${theme.bodyClass}`}>
-      <style dangerouslySetInnerHTML={{ __html: theme.css + customCss }} />
+      <style dangerouslySetInnerHTML={{ __html: theme.css + '\n' + customCss }} />
 
       {/* Progress bar */}
       <div className="w-full max-w-2xl mb-6">

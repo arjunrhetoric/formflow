@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Loader2, Users, CheckCircle, AlertCircle, Layers, ArrowRight } from 'lucide-react';
 
 export default function InvitePage() {
-  const { token } = useParams() as { token: string };
+  const params = useParams() as { token: string };
+  const token = decodeURIComponent(params.token);
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<'loading' | 'joined' | 'already' | 'error' | 'needLogin'>('loading');
