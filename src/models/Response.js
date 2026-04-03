@@ -8,6 +8,10 @@ const responseSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    formVersion: {
+      type: Number,
+      default: 1
+    },
     submittedBy: {
       type: mongoose.Schema.Types.Mixed,
       default: "anon"
@@ -16,9 +20,10 @@ const responseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {}
     },
-    ipAddress: {
-      type: String,
-      default: ""
+    respondentMeta: {
+      ip: { type: String, default: "" },
+      userAgent: { type: String, default: "" },
+      completionTime: { type: Number, default: 0 }
     }
   },
   {

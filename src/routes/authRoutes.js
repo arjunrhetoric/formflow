@@ -9,6 +9,16 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
+function userResponse(user) {
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    cursorColor: user.cursorColor || "#2563eb",
+    avatar_url: user.avatar_url || ""
+  };
+}
+
 router.post(
   "/register",
   authLimiter,
@@ -34,11 +44,7 @@ router.post(
     const token = signToken(user);
     res.status(201).json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email
-      }
+      user: userResponse(user)
     });
   })
 );
@@ -66,11 +72,7 @@ router.post(
     const token = signToken(user);
     res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email
-      }
+      user: userResponse(user)
     });
   })
 );
@@ -80,11 +82,7 @@ router.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     res.json({
-      user: {
-        id: req.user._id,
-        name: req.user.name,
-        email: req.user.email
-      }
+      user: userResponse(req.user)
     });
   })
 );

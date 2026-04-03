@@ -33,11 +33,30 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     { href: '#', label: 'Settings', icon: Settings },
   ];
 
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'FF';
+
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <aside className={`border-r border-border bg-muted/30 flex flex-col transition-all overflow-hidden ${collapsed ? 'w-20' : 'w-64'}`}>
-        <div className="flex h-14 items-center justify-between px-4 border-b border-border">
-          {!collapsed && <span className="font-bold text-lg cursor-default">FormFlow</span>}
+      <aside className={`border-r border-border bg-gradient-to-b from-background via-background to-muted/30 flex flex-col transition-all overflow-hidden ${collapsed ? 'w-20' : 'w-72'}`}>
+        <div className="flex h-16 items-center justify-between px-4 border-b border-border/80">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+              <span className="text-sm font-bold tracking-wide">FF</span>
+            </div>
+            {!collapsed && (
+              <div className="min-w-0">
+                <div className="truncate text-base font-bold tracking-tight">FormFlow</div>
+                <div className="truncate text-xs text-muted-foreground">Collaborative form studio</div>
+              </div>
+            )}
+          </div>
           <Button variant="ghost" onClick={() => setCollapsed(!collapsed)} className="h-8 w-8 p-0 ml-auto">
             <Menu className="h-4 w-4" />
           </Button>
@@ -46,36 +65,34 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           {links.map((li) => {
             const active = pathname === li.href;
             return (
-              <Link key={li.label} href={li.href} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${active ? 'bg-secondary text-primary font-semibold' : 'text-muted-foreground hover:bg-secondary/50'}`}>
+              <Link key={li.label} href={li.href} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'}`}>
                 <li.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>{li.label}</span>}
               </Link>
             );
           })}
         </nav>
-        <div className="p-4 border-t border-border flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" className="p-0 h-8 w-8 shrink-0 rounded-full bg-secondary text-foreground" onClick={toggleTheme}>
+        <div className="p-4 border-t border-border/80 flex flex-col gap-4 bg-muted/20">
+          <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
+            <Button variant="outline" className="p-0 h-10 w-10 shrink-0 rounded-full" onClick={toggleTheme}>
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </Button>
-            {!collapsed && <span className="text-xs text-muted-foreground">Dark Mode</span>}
+            {!collapsed && <span className="text-sm text-muted-foreground font-medium">Toggle theme</span>}
           </div>
           {user && (
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0" style={user.cursorColor ? { backgroundColor: user.cursorColor } : {}}>
-                {user.name.charAt(0).toUpperCase()}
+            <div className={`rounded-2xl border border-border bg-card/90 p-3 shadow-sm ${collapsed ? 'flex flex-col items-center gap-3' : 'flex items-center gap-3'}`}>
+              <div className="h-11 w-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0 shadow-sm ring-2 ring-background" style={user.cursorColor ? { backgroundColor: user.cursorColor } : {}}>
+                {initials}
               </div>
               {!collapsed && (
                 <div className="flex-1 min-w-0">
-                  <div className="truncate text-sm font-medium">{user.name}</div>
+                  <div className="truncate text-sm font-semibold">{user.name}</div>
                   <div className="truncate text-xs text-muted-foreground">{user.email}</div>
                 </div>
               )}
-              {!collapsed && (
-                <Button variant="ghost" className="h-8 w-8 p-0" onClick={logout}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              )}
+              <Button variant={collapsed ? 'outline' : 'ghost'} className="h-9 w-9 p-0 shrink-0" onClick={logout} title="Log out">
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </div>

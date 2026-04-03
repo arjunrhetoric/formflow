@@ -1,189 +1,163 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const { env } = require("../config/env");
-const { Form } = require("../models/Form");
-const { FormHistory } = require("../models/FormHistory");
 const { User } = require("../models/User");
+const { Form } = require("../models/Form");
 const { createPresenceStore } = require("../services/presenceStore");
-const { canAccessForm } = require("../services/formService");
 
 const presenceStore = createPresenceStore();
 
-function buildRoomName(formId) {
-  return `form:${formId}`;
-}
-
-async function authenticateSocket(socket) {
-  const token =
-    socket.handshake.auth?.token ||
-    socket.handshake.headers.authorization?.replace(/^Bearer\s+/i, "");
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const payload = jwt.verify(token, env.JWT_SECRET);
-    return User.findById(payload.sub).select("-passwordHash");
-  } catch (_error) {
-    return null;
-  }
-}
+// In-memory room tracker (userId -> { formId, name, color })
+const roomMembers = new Map();
 
 function attachSocketServer(server) {
-  const io = new Server(server, {
-    cors: {
-      origin: env.CORS_ORIGIN.split(",").map((origin) => origin.trim()),
-      credentials: true
-    }
-  });
+  const io = new Server(server, { cors: { origin: "*" } });
 
-  io.use(async (socket, next) => {
-    const user = await authenticateSocket(socket);
-    if (!user) {
-      return next(new Error("Unauthorized"));
-    }
-    socket.user = user;
-    return next();
-  });
+  io.on("connection", async (socket) => {
+    let authenticatedUser = null;
 
-  io.on("connection", (socket) => {
-    socket.on("form:join", async ({ formId }) => {
-      try {
-        const form = await Form.findById(formId);
-        if (!form || !canAccessForm(form, socket.user._id)) {
-          socket.emit("form:error", { message: "Form not found or unauthorized" });
-          return;
+    // Authenticate
+    try {
+      const token = socket.handshake?.auth?.token;
+      if (token) {
+        const payload = jwt.verify(token, env.JWT_SECRET);
+        const user = await User.findById(payload.sub).select("-passwordHash").lean();
+        if (user) {
+          authenticatedUser = {
+            userId: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            color: user.cursorColor || "#2563eb",
+          };
         }
+      }
+    } catch (_err) {
+      // Anonymous connection allowed for public forms
+    }
 
-        socket.data.formId = formId;
-        await socket.join(buildRoomName(formId));
+    /* ───── form:join ───── */
+    socket.on("form:join", async (data) => {
+      const formId = data?.formId;
+      if (!formId) return;
 
-        const presence = await presenceStore.getPresence(formId);
-        socket.emit("presence:snapshot", { presence });
-        socket.to(buildRoomName(formId)).emit("presence:joined", {
-          userId: socket.user._id.toString(),
-          name: socket.user.name
+      socket.join(formId);
+
+      if (authenticatedUser) {
+        roomMembers.set(socket.id, { ...authenticatedUser, formId });
+
+        // Notify others in the room
+        socket.to(formId).emit("presence:joined", {
+          userId: authenticatedUser.userId,
+          name: authenticatedUser.name,
+          color: authenticatedUser.color,
         });
-      } catch (error) {
-        socket.emit("form:error", { message: error.message });
+
+        // Send current presence snapshot to the joining user
+        const members = [];
+        roomMembers.forEach((member) => {
+          if (member.formId === formId) {
+            members.push({
+              userId: member.userId,
+              name: member.name,
+              color: member.color,
+            });
+          }
+        });
+        socket.emit("presence:snapshot", { presence: members });
       }
     });
 
-    socket.on("cursor:move", async (payload) => {
-      const formId = socket.data.formId;
-      if (!formId) {
-        return;
-      }
+    /* ───── cursor:move ───── */
+    socket.on("cursor:move", async (data) => {
+      const member = roomMembers.get(socket.id);
+      if (!member) return;
 
-      const cursorPayload = {
-        userId: socket.user._id.toString(),
-        name: socket.user.name,
-        x: payload.x,
-        y: payload.y,
-        color: payload.color || "#2563eb"
+      const cursorData = {
+        userId: member.userId,
+        name: member.name,
+        color: data?.color || member.color,
+        x: data?.x || 0,
+        y: data?.y || 0,
       };
 
-      await presenceStore.setCursor(formId, socket.user._id, cursorPayload);
-      socket.to(buildRoomName(formId)).emit("cursor:moved", cursorPayload);
+      // Store in Redis (with 5s TTL)
+      await presenceStore.setCursor(member.formId, member.userId, cursorData).catch(() => {});
+
+      // Broadcast to room
+      socket.to(member.formId).emit("cursor:moved", cursorData);
     });
 
-    async function handlePatch(eventType, payload) {
-      const formId = socket.data.formId;
-      if (!formId) {
-        return;
-      }
-
-      const form = await Form.findById(formId);
-      if (!form || !canAccessForm(form, socket.user._id)) {
-        socket.emit("form:error", { message: "Form not found or unauthorized" });
-        return;
-      }
-
-      if (payload.version && payload.version < form.version) {
-        socket.emit("form:error", {
-          message: "Version conflict",
-          latestVersion: form.version
-        });
-        return;
-      }
-
-      await FormHistory.create({
-        formId: form._id,
-        version: form.version,
-        snapshot: form.toObject(),
-        actorId: socket.user._id
+    /* ───── field:add ───── */
+    socket.on("field:add", (data) => {
+      const member = roomMembers.get(socket.id);
+      if (!member) return;
+      socket.to(member.formId).emit("form:patched", {
+        type: "field:add",
+        actorId: member.userId,
+        ...data,
       });
+    });
 
-      form.version += 1;
-      form.updatedAt = new Date();
-
-      if (eventType === "field:add" && payload.field) {
-        form.fields.push(payload.field);
-      }
-
-      if (eventType === "field:update" && payload.fieldId) {
-        const target = form.fields.find((field) => field.id === payload.fieldId);
-        if (target) {
-          Object.assign(target, payload.patch || {});
-        }
-      }
-
-      if (eventType === "field:delete" && payload.fieldId) {
-        form.fields = form.fields.filter((field) => field.id !== payload.fieldId);
-      }
-
-      if (eventType === "field:reorder" && Array.isArray(payload.fieldOrder)) {
-        const orderMap = new Map(payload.fieldOrder.map((fieldId, index) => [fieldId, index + 1]));
-        form.fields = form.fields
-          .map((field) => ({
-            ...field.toObject(),
-            order: orderMap.get(field.id) || field.order
-          }))
-          .sort((a, b) => a.order - b.order);
-      }
-
-      if (eventType === "form:patch" && payload.formPatch) {
-        if (payload.formPatch.title !== undefined) {
-          form.title = payload.formPatch.title;
-        }
-        if (payload.formPatch.theme !== undefined) {
-          form.theme = payload.formPatch.theme;
-        }
-      }
-
-      await form.save();
-
-      io.to(buildRoomName(formId)).emit("form:patched", {
-        actorId: socket.user._id.toString(),
-        type: eventType,
-        payload,
-        version: form.version,
-        updatedAt: form.updatedAt
+    /* ───── field:update ───── */
+    socket.on("field:update", (data) => {
+      const member = roomMembers.get(socket.id);
+      if (!member) return;
+      socket.to(member.formId).emit("form:patched", {
+        type: "field:update",
+        actorId: member.userId,
+        ...data,
       });
-    }
+    });
 
-    socket.on("field:add", (payload) => handlePatch("field:add", payload));
-    socket.on("field:update", (payload) => handlePatch("field:update", payload));
-    socket.on("field:delete", (payload) => handlePatch("field:delete", payload));
-    socket.on("field:reorder", (payload) => handlePatch("field:reorder", payload));
-    socket.on("form:patch", (payload) => handlePatch("form:patch", payload));
-    socket.on("form:undo", (payload) => handlePatch(payload?.inverse?.type || "form:patch", payload?.inverse || {}));
+    /* ───── field:delete ───── */
+    socket.on("field:delete", (data) => {
+      const member = roomMembers.get(socket.id);
+      if (!member) return;
+      socket.to(member.formId).emit("form:patched", {
+        type: "field:delete",
+        actorId: member.userId,
+        ...data,
+      });
+    });
 
+    /* ───── field:reorder ───── */
+    socket.on("field:reorder", (data) => {
+      const member = roomMembers.get(socket.id);
+      if (!member) return;
+      socket.to(member.formId).emit("form:patched", {
+        type: "field:reorder",
+        actorId: member.userId,
+        ...data,
+      });
+    });
+
+    /* ───── form:patch (title, theme, etc.) ───── */
+    socket.on("form:patch", (data) => {
+      const member = roomMembers.get(socket.id);
+      if (!member) return;
+      socket.to(member.formId).emit("form:patched", {
+        type: "form:patch",
+        actorId: member.userId,
+        ...data,
+      });
+    });
+
+    /* ───── disconnect ───── */
     socket.on("disconnect", async () => {
-      const formId = socket.data.formId;
-      if (!formId) {
-        return;
-      }
+      const member = roomMembers.get(socket.id);
+      if (member) {
+        // Notify others
+        socket.to(member.formId).emit("presence:left", {
+          userId: member.userId,
+          name: member.name,
+        });
 
-      await presenceStore.removePresence(formId, socket.user._id);
-      socket.to(buildRoomName(formId)).emit("presence:left", {
-        userId: socket.user._id.toString()
-      });
+        // Clean up presence
+        await presenceStore.removePresence(member.formId, member.userId).catch(() => {});
+        roomMembers.delete(socket.id);
+      }
     });
   });
-
-  return io;
 }
 
 module.exports = { attachSocketServer };

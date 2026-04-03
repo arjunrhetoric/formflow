@@ -57,9 +57,14 @@ router.post(
 
     const response = await Response.create({
       formId: form._id,
+      formVersion: form.version,
       submittedBy: req.body.submittedBy || "anon",
       answers,
-      ipAddress: req.ip
+      respondentMeta: {
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+        completionTime: Number(req.body.completionTime) || 0
+      }
     });
 
     res.status(201).json({

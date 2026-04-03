@@ -7,5 +7,5 @@ const publicApi = axios.create({
 export const getPublicForm = (slug: string) =>
   publicApi.get(`/api/public/forms/${slug}`);
 
-export const submitForm = (slug: string, answers: Record<string, unknown>) =>
-  publicApi.post(`/api/public/forms/${slug}/submit`, { answers });
+export const submitForm = (slug: string, answers: Record<string, unknown>, completionTime?: number) =>
+  publicApi.post(`/api/public/forms/${slug}/submit`, { answers, completionTime });

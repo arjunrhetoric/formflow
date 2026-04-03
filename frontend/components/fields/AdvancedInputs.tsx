@@ -1,9 +1,10 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { FieldWrapper } from './FieldWrapper';
-import { Upload } from 'lucide-react';
+import { Upload, CheckCircle, Loader2, FileText, X } from 'lucide-react';
+import { signUpload } from '@/lib/api/uploads';
 
 export function DateRangeInput({ label, required, disabled, value, onChange, error }: any) {
   const [startDate, endDate] = Array.isArray(value) ? value : [null, null];
@@ -24,26 +25,131 @@ export function DateRangeInput({ label, required, disabled, value, onChange, err
 }
 
 export function FileUploadInput({ label, required, disabled, value, onChange, error }: any) {
-  // Simplified dropzone UI
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || disabled) return;
+
+    setUploading(true);
+    setProgress(0);
+    setUploadError('');
+
+    try {
+      // Get signed upload params from backend
+      const signRes = await signUpload('formflow/uploads');
+      const { cloudName, apiKey, folder, timestamp, signature } = signRes.data;
+
+      // Upload directly to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', apiKey);
+      formData.append('timestamp', String(timestamp));
+      formData.append('signature', signature);
+      formData.append('folder', folder);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          setProgress(Math.round((ev.loaded / ev.total) * 100));
+        }
+      };
+
+      xhr.onload = () => {
+        setUploading(false);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const result = JSON.parse(xhr.responseText);
+          onChange?.({
+            cloudinary_public_id: result.public_id,
+            url: result.secure_url,
+            original_name: file.name,
+            size_bytes: file.size,
+            format: result.format,
+          });
+        } else {
+          setUploadError('Upload failed. Please try again.');
+        }
+      };
+
+      xhr.onerror = () => {
+        setUploading(false);
+        setUploadError('Upload failed. Check your connection.');
+      };
+
+      xhr.send(formData);
+    } catch (err: any) {
+      setUploading(false);
+      setUploadError(err.response?.data?.message || 'Could not sign upload');
+    }
+  };
+
+  const fileInfo = value && typeof value === 'object' ? value : null;
+
   return (
-    <FieldWrapper label={label} required={required} error={error}>
-      <div className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg transition-colors ${
-        disabled ? 'opacity-50 cursor-not-allowed bg-muted' : 'border-input hover:border-primary/50 bg-transparent cursor-pointer'
-      }`}>
-        <Upload className="h-8 w-8 text-muted-foreground mb-4" />
-        <p className="text-sm text-foreground font-medium">Click or drag file to this area to upload</p>
-        <p className="text-xs text-muted-foreground mt-1">Support for a single or bulk upload.</p>
-        {value && <div className="mt-4 text-xs font-mono bg-secondary px-2 py-1 rounded truncate max-w-full">{typeof value === 'string' ? value : 'File selected'}</div>}
-        <input 
-          type="file" 
-          disabled={disabled} 
-          onChange={(e) => {
-            // Mock upload completion for now
-            if (e.target.files?.[0]) onChange?.(e.target.files[0].name);
-          }}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed" 
-        />
-      </div>
+    <FieldWrapper label={label} required={required} error={error || uploadError}>
+      {fileInfo ? (
+        <div className="flex items-center gap-3 p-3 border border-input rounded-xl bg-muted/30">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{fileInfo.original_name || 'Uploaded file'}</p>
+            <p className="text-xs text-muted-foreground">
+              {fileInfo.size_bytes ? `${(fileInfo.size_bytes / 1024).toFixed(1)} KB` : 'Uploaded'}
+              {fileInfo.format ? ` · ${fileInfo.format.toUpperCase()}` : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => onChange?.(null)}
+                className="h-6 w-6 rounded-full hover:bg-destructive/10 flex items-center justify-center transition-colors"
+              >
+                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl transition-all ${
+          disabled ? 'opacity-50 cursor-not-allowed bg-muted' :
+          uploading ? 'border-primary/50 bg-primary/5' :
+          'border-input hover:border-primary/50 bg-transparent cursor-pointer hover:bg-muted/30'
+        }`}>
+          {uploading ? (
+            <>
+              <Loader2 className="h-8 w-8 text-primary mb-3 animate-spin" />
+              <p className="text-sm font-medium text-foreground">Uploading... {progress}%</p>
+              <div className="w-48 h-1.5 bg-muted rounded-full mt-3 overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <Upload className="h-8 w-8 text-muted-foreground mb-3" />
+              <p className="text-sm text-foreground font-medium">Click or drag file to upload</p>
+              <p className="text-xs text-muted-foreground mt-1">PDF, Images, Documents up to 10MB</p>
+            </>
+          )}
+          {!uploading && (
+            <input
+              type="file"
+              disabled={disabled}
+              onChange={handleFileSelect}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+            />
+          )}
+        </div>
+      )}
     </FieldWrapper>
   );
 }

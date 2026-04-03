@@ -17,9 +17,23 @@ router.get(
   asyncHandler(async (req, res) => {
     const forms = await Form.find({
       $or: [{ ownerId: req.user._id }, { collaborators: req.user._id }]
-    }).sort({ updatedAt: -1 });
+    }).sort({ updatedAt: -1 }).lean();
 
-    res.json({ forms });
+    // Aggregate response counts for all forms
+    const formIds = forms.map((f) => f._id);
+    const counts = await Response.aggregate([
+      { $match: { formId: { $in: formIds } } },
+      { $group: { _id: "$formId", count: { $sum: 1 } } }
+    ]);
+    const countMap = {};
+    counts.forEach((c) => { countMap[c._id.toString()] = c.count; });
+
+    const formsWithCounts = forms.map((f) => ({
+      ...f,
+      responseCount: countMap[f._id.toString()] || 0
+    }));
+
+    res.json({ forms: formsWithCounts });
   })
 );
 
@@ -92,8 +106,16 @@ router.get(
   "/:id/responses",
   asyncHandler(async (req, res) => {
     const form = await getAccessibleForm(req.params.id, req.user._id);
-    const responses = await Response.find({ formId: form._id }).sort({ createdAt: -1 });
-    res.json({ responses });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [responses, total] = await Promise.all([
+      Response.find({ formId: form._id }).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Response.countDocuments({ formId: form._id })
+    ]);
+
+    res.json({ responses, total, page, limit, pages: Math.ceil(total / limit) });
   })
 );
 
@@ -108,6 +130,8 @@ router.get(
         typeof response.submittedBy === "object" && response.submittedBy !== null
           ? response.submittedBy.toString()
           : response.submittedBy,
+      form_version: response.formVersion || "",
+      completion_time: response.respondentMeta?.completionTime || "",
       created_at: response.createdAt,
       ...response.answers
     }));
@@ -142,6 +166,13 @@ router.get(
     const form = await getAccessibleForm(req.params.id, req.user._id);
     const responses = await Response.find({ formId: form._id }).lean();
 
+    const completionTimes = responses
+      .map((r) => r.respondentMeta?.completionTime)
+      .filter((t) => t > 0);
+    const avgCompletionTime = completionTimes.length
+      ? Math.round(completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length)
+      : 0;
+
     const summary = form.fields.map((field) => {
       const values = responses
         .map((response) => response.answers?.[field.id])
@@ -158,6 +189,7 @@ router.get(
 
     res.json({
       totalResponses: responses.length,
+      avgCompletionTime,
       fields: summary
     });
   })

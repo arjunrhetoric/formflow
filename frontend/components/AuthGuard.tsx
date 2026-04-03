@@ -2,18 +2,26 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!loading && !user) {
       router.push('/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [loading, user, router]);
 
-  if (isLoading || !isAuthenticated) return <div className="min-h-screen bg-background flex justify-center items-center">Loading...</div>;
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col justify-center items-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="text-sm text-muted-foreground font-medium">Loading...</span>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }

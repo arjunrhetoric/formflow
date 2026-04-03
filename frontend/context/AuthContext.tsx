@@ -1,69 +1,70 @@
 'use client';
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getMe, login as apiLogin, register as apiRegister } from '@/lib/api/auth';
+import * as authApi from '@/lib/api/auth';
 
 interface User {
-  id: string;
   _id: string;
+  id: string;
   name: string;
   email: string;
-  cursorColor?: string;
-}
-
-function normalizeUser(user: any): User | null {
-  if (!user) {
-    return null;
-  }
-
-  const id = user.id || user._id;
-  if (!id) {
-    return null;
-  }
-
-  return {
-    ...user,
-    id,
-    _id: user._id || id
-  };
+  cursorColor: string;
+  avatar_url: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
+  loading: true,
+});
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const normalizeUser = (u: any): User => ({
+    _id: u.id || u._id,
+    id: u.id || u._id,
+    name: u.name,
+    email: u.email,
+    cursorColor: u.cursorColor || '#2563eb',
+    avatar_url: u.avatar_url || '',
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('formflow_token');
-    if (!token) { setIsLoading(false); return; }
-    getMe()
-      .then((r) => setUser(normalizeUser(r.data.user ?? r.data)))
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    authApi.getMe()
+      .then((res) => setUser(normalizeUser(res.data.user)))
       .catch(() => localStorage.removeItem('formflow_token'))
-      .finally(() => setIsLoading(false));
+      .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const r = await apiLogin(email, password);
-    localStorage.setItem('formflow_token', r.data.token);
-    setUser(normalizeUser(r.data.user));
+    const res = await authApi.login(email, password);
+    localStorage.setItem('formflow_token', res.data.token);
+    setUser(normalizeUser(res.data.user));
     router.push('/dashboard');
   }, [router]);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const r = await apiRegister(name, email, password);
-    localStorage.setItem('formflow_token', r.data.token);
-    setUser(normalizeUser(r.data.user));
+    const res = await authApi.register(name, email, password);
+    localStorage.setItem('formflow_token', res.data.token);
+    setUser(normalizeUser(res.data.user));
     router.push('/dashboard');
   }, [router]);
 
@@ -74,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

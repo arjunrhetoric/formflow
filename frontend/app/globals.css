@@ -137,3 +137,31 @@ body {
   background-image: radial-gradient(#e4e4e7 1px, transparent 1px);
   background-size: 24px 24px;
 }
+.dark .dot-grid {
+  background-color: #0a0a0b;
+  background-image: radial-gradient(#27272a 1px, transparent 1px);
+}
+
+/* Smooth transitions for interactive elements */
+.transition-scale { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.transition-scale:hover { transform: translateY(-1px); }
+.transition-scale:active { transform: scale(0.99); }
+
+/* Dark mode for React Flow */
+.dark .react-flow__background { background: #09090b; }
+.dark .react-flow__controls button { background: #27272a; fill: #fafafa; border-color: #3f3f46; }
+.dark .react-flow__minimap { background: #18181b; }
+.dark .react-flow__edge-path { stroke: #a1a1aa; }
+
+/* DatePicker dark overrides */
+.dark .react-datepicker { background: #18181b !important; color: #fafafa !important; }
+.dark .react-datepicker__header { background: #27272a !important; }
+.dark .react-datepicker__day { color: #fafafa !important; }
+.dark .react-datepicker__day:hover { background: #3f3f46 !important; }
+
+/* Select dark overrides */
+.dark .react-select__control { background: #18181b !important; border-color: #3f3f46 !important; }
+.dark .react-select__menu { background: #18181b !important; border-color: #3f3f46 !important; }
+.dark .react-select__single-value { color: #fafafa !important; }
+.dark .react-select__input-container { color: #fafafa !important; }
+.dark .react-select__option--is-focused { background: #27272a !important; }
