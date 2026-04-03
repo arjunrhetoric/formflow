@@ -7,6 +7,9 @@ import { getResponses, exportCSV, exportJSON } from '@/lib/api/responses';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Sidebar } from '@/components/ui/Sidebar';
 import { Button } from '@/components/ui/Button';
+import { useCollaborativeArea } from '@/hooks/useCollaborativeArea';
+import { RemoteCursors } from '@/components/RemoteCursors';
+import { PresenceAvatars } from '@/components/PresenceAvatars';
 import {
   Download, Table as TableIcon, ChevronLeft, ChevronRight,
   BarChart2, Clock, Users, Loader2, ArrowLeft
@@ -22,6 +25,8 @@ export default function ResponseVault() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  const { canvasRef, remoteCursors, presenceList, socketId } = useCollaborativeArea(id);
 
   useEffect(() => {
     getForm(id).then((r) => setForm(r.data.form));
@@ -67,7 +72,8 @@ export default function ResponseVault() {
   return (
     <AuthGuard>
       <Sidebar>
-        <div className="p-8 max-w-[1400px] mx-auto flex flex-col gap-6 h-screen overflow-hidden">
+        <div ref={canvasRef} className="p-8 max-w-[1400px] mx-auto flex flex-col gap-6 h-screen overflow-hidden relative">
+          <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
           {/* Header */}
           <div className="flex items-center justify-between shrink-0">
             <div className="flex items-center gap-4">
@@ -79,7 +85,8 @@ export default function ResponseVault() {
                 <p className="text-muted-foreground text-sm font-medium">{form.title}</p>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
+              <PresenceAvatars users={presenceList} />
               <Button variant="outline" onClick={() => handleExport('csv')} disabled={total === 0}>
                 <Download className="mr-2 h-4 w-4" /> CSV
               </Button>

@@ -7,7 +7,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { nanoid } from 'nanoid';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getForm, updateForm } from '@/lib/api/forms';
-import { useSocket } from '@/hooks/useSocket';
 import { useAuth } from '@/context/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { RemoteCursors } from '@/components/RemoteCursors';

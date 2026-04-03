@@ -6,6 +6,9 @@ import { getForm, getHistory, restoreVersion } from '@/lib/api/forms';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Button } from '@/components/ui/Button';
 import { FieldComponents } from '@/components/fields';
+import { useCollaborativeArea } from '@/hooks/useCollaborativeArea';
+import { RemoteCursors } from '@/components/RemoteCursors';
+import { PresenceAvatars } from '@/components/PresenceAvatars';
 import { ChevronLeft, RotateCcw, Clock, Loader2, History, ArrowLeft } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -16,6 +19,8 @@ export default function TimeTravel() {
   const [history, setHistory] = useState<any[]>([]);
   const [selectedVer, setSelectedVer] = useState<any>(null);
   const [restoring, setRestoring] = useState(false);
+
+  const { canvasRef, remoteCursors, presenceList, socketId } = useCollaborativeArea(id);
 
   useEffect(() => {
     getForm(id).then((r) => setForm(r.data.form));
@@ -49,7 +54,8 @@ export default function TimeTravel() {
 
   return (
     <AuthGuard>
-      <div className="flex flex-col h-screen bg-background overflow-hidden">
+      <div ref={canvasRef} className="flex flex-col h-screen bg-background overflow-hidden relative">
+        <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
         {/* Toolbar */}
         <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
@@ -66,7 +72,8 @@ export default function TimeTravel() {
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <History className="h-4 w-4" />
+            <PresenceAvatars users={presenceList} />
+            <History className="h-4 w-4 ml-2" />
             {history.length} version{history.length !== 1 ? 's' : ''}
           </div>
         </div>

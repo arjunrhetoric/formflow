@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/ui/Sidebar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { useSocketContext } from '@/context/SocketContext';
 import {
   Search, Plus, Edit2, ExternalLink, Trash2,
   FileText, BarChart2, Clock, Loader2
@@ -19,6 +20,12 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { setFormId } = useSocketContext();
+
+  // Clear socket form connection when on dashboard
+  useEffect(() => {
+    setFormId(null);
+  }, [setFormId]);
 
   const loadForms = async () => {
     try {

@@ -10,6 +10,9 @@ import { getForm, updateForm } from '@/lib/api/forms';
 import { Button } from '@/components/ui/Button';
 import { AuthGuard } from '@/components/AuthGuard';
 import { LogicEdgeModal } from '@/components/LogicEdgeModal';
+import { useCollaborativeArea } from '@/hooks/useCollaborativeArea';
+import { RemoteCursors } from '@/components/RemoteCursors';
+import { PresenceAvatars } from '@/components/PresenceAvatars';
 import { ChevronLeft, Save, Loader2, Zap, Info } from 'lucide-react';
 
 const CustomNode = ({ data }: any) => {
@@ -43,6 +46,8 @@ export default function LogicMap() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const { canvasRef, remoteCursors, presenceList, socketId } = useCollaborativeArea(id);
 
   // Edge modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -212,7 +217,8 @@ export default function LogicMap() {
 
   return (
     <AuthGuard>
-      <div className="flex flex-col h-screen bg-[#f4f4f5]">
+      <div ref={canvasRef} className="flex flex-col h-screen bg-[#f4f4f5] relative">
+        <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
         {/* Toolbar */}
         <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-4 shadow-sm z-10 relative">
           <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
@@ -228,6 +234,9 @@ export default function LogicMap() {
             <button className="toolbar-nav-item" onClick={() => router.push(`/vault/${id}`)}>Vault</button>
           </div>
 
+          <div className="mr-2">
+            <PresenceAvatars users={presenceList} />
+          </div>
           <Button className="h-8 text-xs" onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : saved ? '✓ Saved' : <><Save className="mr-2 h-3 w-3" /> Save Logic</>}
           </Button>

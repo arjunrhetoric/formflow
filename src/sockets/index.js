@@ -40,6 +40,19 @@ function attachSocketServer(server) {
       const formId = data?.formId;
       if (!formId) return;
 
+      // If this socket was already in a different form room, leave it first
+      const existing = roomMembers.get(socket.id);
+      if (existing && existing.formId !== formId) {
+        console.log(`[socket] ${socket.id} leaving old room ${existing.formId}`);
+        socket.leave(existing.formId);
+        socket.to(existing.formId).emit("presence:left", {
+          userId: existing.userId,
+          clientId: socket.id,
+          name: existing.name,
+        });
+        await presenceStore.removePresence(existing.formId, existing.userId).catch(() => {});
+      }
+
       console.log(`[socket] ${socket.id} joining room ${formId}`, authenticatedUser?.name || 'anon');
       socket.join(formId);
 
@@ -53,18 +66,18 @@ function attachSocketServer(server) {
           color: authenticatedUser.color,
         });
 
-        // Send current presence snapshot to the joining user
-        const members = [];
+        // Build a de-duplicated presence snapshot (by userId)
+        const seen = new Map();
         roomMembers.forEach((member) => {
-          if (member.formId === formId) {
-            members.push({
+          if (member.formId === formId && !seen.has(member.userId)) {
+            seen.set(member.userId, {
               userId: member.userId,
               name: member.name,
               color: member.color,
             });
           }
         });
-        socket.emit("presence:snapshot", { presence: members });
+        socket.emit("presence:snapshot", { presence: Array.from(seen.values()) });
       }
     });
 
