@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,8 +8,12 @@ const OPERATORS = [
   { value: 'equals', label: 'Equals' },
   { value: 'not_equals', label: 'Not Equals' },
   { value: 'contains', label: 'Contains' },
+  { value: 'starts_with', label: 'Starts With' },
   { value: 'gt', label: 'Greater Than' },
+  { value: 'gte', label: 'Greater Than or Equal' },
   { value: 'lt', label: 'Less Than' },
+  { value: 'lte', label: 'Less Than or Equal' },
+  { value: 'in_list', label: 'In List' },
   { value: 'is_empty', label: 'Is Empty' },
 ];
 
@@ -40,30 +44,59 @@ export function LogicEdgeModal({
   allFields,
   initialRule,
 }: LogicEdgeModalProps) {
-  const [op, setOp] = useState(initialRule?.condition?.op || 'equals');
-  const [value, setValue] = useState(initialRule?.condition?.value || '');
-  const [actionType, setActionType] = useState(initialRule?.action?.type || 'hide');
-  const [targets, setTargets] = useState<string[]>(
-    initialRule?.action?.targets || targetFields.map((f) => f.id)
+  const availableTargets = useMemo(
+    () => allFields.filter((f) => f.id !== sourceField?.id),
+    [allFields, sourceField?.id]
   );
 
+  const [op, setOp] = useState(() => initialRule?.condition?.op || 'equals');
+  const [value, setValue] = useState(() => {
+    const rawValue = initialRule?.condition?.value;
+    return Array.isArray(rawValue) ? rawValue.join(', ') : String(rawValue ?? '');
+  });
+  const [actionType, setActionType] = useState(() => initialRule?.action?.type || 'hide');
+  const [targets, setTargets] = useState<string[]>(() => {
+    const nextActionType = initialRule?.action?.type || 'hide';
+    if (nextActionType === 'jump') {
+      return initialRule?.action?.destination
+        ? [initialRule.action.destination]
+        : targetFields.map((f) => f.id);
+    }
+    if (initialRule?.action?.targets?.length) {
+      return [initialRule.action.targets[0]];
+    }
+    return targetFields[0]?.id ? [targetFields[0].id] : [];
+  });
+
   const handleSave = () => {
+    const normalizedValue =
+      op === 'is_empty'
+        ? ''
+        : op === 'in_list'
+          ? value.split(',').map((v) => v.trim()).filter(Boolean)
+          : value;
+
+    const normalizedTargets = targets.filter(Boolean);
+
     onSave({
       condition: {
         field: 'self',
         op,
-        value: op === 'is_empty' ? '' : value,
+        value: normalizedValue,
       },
       action: {
         type: actionType,
-        targets: actionType === 'jump' ? [] : targets,
-        destination: actionType === 'jump' ? targets[0] || '' : undefined,
+        targets: actionType === 'jump' ? [] : [normalizedTargets[0]].filter(Boolean),
+        destination: actionType === 'jump' ? normalizedTargets[0] || '' : undefined,
       },
     });
     onClose();
   };
 
-  const availableTargets = allFields.filter((f) => f.id !== sourceField?.id);
+  const saveDisabled =
+    (actionType === 'jump' && targets.length === 0) ||
+    (actionType !== 'jump' && targets.length === 0) ||
+    (op !== 'is_empty' && value.trim() === '');
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -100,7 +133,7 @@ export function LogicEdgeModal({
               <Input
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder="Enter comparison value..."
+                placeholder={op === 'in_list' ? 'Enter comma separated values...' : 'Enter comparison value...'}
               />
             </div>
           )}
@@ -122,23 +155,17 @@ export function LogicEdgeModal({
           {/* Target fields */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">
-              {actionType === 'jump' ? 'Jump to' : `${actionType === 'hide' ? 'Hide' : 'Show'} these fields`}
+              {actionType === 'jump' ? 'Jump to' : `${actionType === 'hide' ? 'Hide' : 'Show'} this field`}
             </label>
             <div className="max-h-40 overflow-y-auto rounded-xl border border-input p-2 flex flex-col gap-1">
               {availableTargets.map((f) => (
                 <label key={f.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted cursor-pointer text-sm">
                   <input
-                    type={actionType === 'jump' ? 'radio' : 'checkbox'}
+                    type="radio"
                     name="logic-target"
                     checked={targets.includes(f.id)}
                     onChange={(e) => {
-                      if (actionType === 'jump') {
-                        setTargets([f.id]);
-                      } else if (e.target.checked) {
-                        setTargets([...targets, f.id]);
-                      } else {
-                        setTargets(targets.filter((t) => t !== f.id));
-                      }
+                      if (e.target.checked) setTargets([f.id]);
                     }}
                     className="accent-primary"
                   />
@@ -159,7 +186,7 @@ export function LogicEdgeModal({
               </Button>
             )}
             <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={handleSave}>Save Rule</Button>
+            <Button onClick={handleSave} disabled={saveDisabled}>Save Rule</Button>
           </div>
         </div>
       </DialogContent>

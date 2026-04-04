@@ -81,6 +81,10 @@ const formSchema = new mongoose.Schema(
     requireSignupToSubmit: {
       type: Boolean,
       default: false
+    },
+    allowMultipleResponses: {
+      type: Boolean,
+      default: false
     }
   },
   {

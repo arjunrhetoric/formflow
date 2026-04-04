@@ -6,10 +6,9 @@ import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } 
 import { CSS } from '@dnd-kit/utilities';
 import { nanoid } from 'nanoid';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getForm, updateForm } from '@/lib/api/forms';
+import { getForm, updateForm, updateFormSettings } from '@/lib/api/forms';
 import { useAuth } from '@/context/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
-import { THEME_PRESETS } from '@/lib/themes';
 import { RemoteCursors } from '@/components/RemoteCursors';
 import { PresenceAvatars } from '@/components/PresenceAvatars';
 import { ShareDialog } from '@/components/ShareDialog';
@@ -38,6 +37,20 @@ const PALETTE = [
   { type: 'signature_pad', label: 'Signature Pad', icon: PenTool },
 ];
 
+const FIELD_STYLE_MAP: Record<string, { icon: any; chip: string; glow: string }> = {
+  short_text: { icon: Type, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  long_text: { icon: FileText, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  number: { icon: Hash, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  email: { icon: Mail, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  phone: { icon: Phone, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  single_select: { icon: CheckSquare, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  multi_select: { icon: List, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  rating: { icon: Star, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  date_range: { icon: Calendar, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  file_upload: { icon: Upload, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+  signature_pad: { icon: PenTool, chip: 'from-zinc-900 to-zinc-700 dark:from-zinc-100 dark:to-zinc-300', glow: 'shadow-black/5' },
+};
+
 function buildField(type: string, label: string, order: number) {
   const base: any = {
     id: `field_${nanoid(8)}`,
@@ -63,6 +76,8 @@ function SortableFieldCard({ field, isSelected, onSelect, onDelete }: {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: field.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
   const Component = FieldComponents[field.type] || FieldComponents.short_text;
+  const fieldStyle = FIELD_STYLE_MAP[field.type] || FIELD_STYLE_MAP.short_text;
+  const FieldIcon = fieldStyle.icon;
   const options = Array.isArray(field.config?.options)
     ? field.config.options.map((option: any) => typeof option === 'string' ? { label: option, value: option } : option)
     : [];
@@ -76,17 +91,39 @@ function SortableFieldCard({ field, isSelected, onSelect, onDelete }: {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12, height: 0, marginBottom: 0 }}
       transition={{ duration: 0.2 }}
-      className={`relative p-5 rounded-xl border-2 transition-colors cursor-pointer group ${isSelected ? 'border-primary bg-primary/[0.02] shadow-sm' : 'border-transparent hover:border-border'}`}
+      className={`relative overflow-hidden rounded-[1.35rem] border transition-all duration-200 cursor-pointer group ${
+        isSelected
+          ? 'border-primary/40 bg-card shadow-lg ring-1 ring-border'
+          : 'border-border/70 bg-card shadow-sm hover:-translate-y-0.5 hover:border-border hover:bg-card'
+      } ${fieldStyle.glow}`}
       onClick={onSelect}
     >
+      <div className="absolute inset-x-0 top-0 h-px bg-border/80" />
       <div
         {...attributes}
         {...listeners}
-        className={`absolute -left-3 top-1/2 -translate-y-1/2 p-1 bg-background border border-border rounded-md shadow-sm opacity-0 transition-opacity ${isSelected ? 'opacity-100' : 'group-hover:opacity-100'}`}
+        className={`absolute left-4 top-4 rounded-xl border border-border bg-background p-1.5 shadow-sm opacity-0 transition-all ${
+          isSelected ? 'opacity-100' : 'group-hover:opacity-100'
+        }`}
       >
         <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
       </div>
-      <div className="pointer-events-none">
+      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground shadow-sm">
+            <FieldIcon className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-[15px] font-semibold tracking-tight text-foreground">{field.label}</div>
+            <div className="mt-1 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              <span>{field.type.replace('_', ' ')}</span>
+              {field.validation?.required && <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] tracking-[0.12em] text-foreground">Required</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="pointer-events-none px-5 pb-5 pt-4">
+        <div className="rounded-[1.1rem] border border-border bg-background p-4">
         <Component
           label={field.label}
           required={!!field.validation?.required}
@@ -97,10 +134,11 @@ function SortableFieldCard({ field, isSelected, onSelect, onDelete }: {
           prefix={field.config?.prefix}
           suffix={field.config?.suffix}
         />
+        </div>
       </div>
       {isSelected && (
-        <div className="absolute top-2 right-2 flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+        <div className="absolute right-4 top-4 flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -333,11 +371,7 @@ export default function WorkshopBuilder() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-
-  // Extract Theme Configuration
-  const preset = form?.theme?.preset || 'minimal';
-  const theme = THEME_PRESETS[preset] || THEME_PRESETS.minimal;
-  const customCss = form?.theme?.custom_css || '';
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState<any[][]>([]);
@@ -494,6 +528,21 @@ export default function WorkshopBuilder() {
 
   const selectedField = fields.find((f) => f.id === selectedId);
 
+  const updateWorkspaceSettings = async (changes: Record<string, boolean>) => {
+    setSettingsSaving(true);
+    const previousForm = form;
+    setForm((current: any) => current ? { ...current, ...changes } : current);
+
+    try {
+      const response = await updateFormSettings(id, changes);
+      setForm(response.data.form);
+    } catch {
+      setForm(previousForm);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
 
 
   return (
@@ -522,7 +571,7 @@ export default function WorkshopBuilder() {
                 });
               }}
             />
-            <div className="bg-muted px-2 py-0.5 rounded-full text-xs font-semibold text-muted-foreground border border-border">
+            <div className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
               v{form.version || 1}
             </div>
 
@@ -567,23 +616,28 @@ export default function WorkshopBuilder() {
           {/* ─── Three-panel layout ─── */}
           <div className="flex flex-1 overflow-hidden">
             {/* Left: Field Palette */}
-            <div className="w-60 border-r border-border bg-card flex flex-col overflow-y-auto shrink-0">
+            <div className="w-64 border-r border-border bg-card flex flex-col overflow-y-auto shrink-0">
               <div className="p-4 border-b border-border">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Add Fields</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Add Fields</h3>
+                <p className="mt-2 text-sm text-muted-foreground">Drop in clean field blocks and build on the live canvas.</p>
               </div>
-              <div className="flex flex-col gap-1 p-3">
+              <div className="flex flex-col gap-2 p-3">
                 {PALETTE.map((item) => {
                   const Icon = item.icon;
+                  const fieldStyle = FIELD_STYLE_MAP[item.type] || FIELD_STYLE_MAP.short_text;
                   return (
                     <button
                       key={item.type}
                       onClick={() => addField(item.type, item.label)}
-                      className="palette-item group"
+                      className="group flex items-center gap-3 rounded-2xl border border-transparent bg-background px-3 py-3 text-left text-[13px] font-medium text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-border hover:bg-accent"
                     >
-                      <div className="palette-item-icon">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary-foreground transition-colors" />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground shadow-sm">
+                        <Icon className="h-4 w-4" />
                       </div>
-                      {item.label}
+                      <div className="min-w-0">
+                        <div className="truncate">{item.label}</div>
+                        <div className="mt-0.5 text-xs font-normal text-muted-foreground">Add to canvas</div>
+                      </div>
                     </button>
                   );
                 })}
@@ -591,10 +645,21 @@ export default function WorkshopBuilder() {
             </div>
 
             {/* Center: Canvas */}
-            <div className={`flex-1 dot-grid overflow-y-auto p-8 relative ${theme.bodyClass}`}>
-              <style dangerouslySetInnerHTML={{ __html: theme.css + '\n' + customCss }} />
-              <div className={`ff-stage max-w-2xl mx-auto rounded-xl shadow-xl border min-h-[500px] p-8 pb-16 relative ${theme.cardClass}`}>
-                <h1 className="text-3xl font-bold tracking-tight mb-8 break-words leading-tight">{form.title}</h1>
+            <div className="flex-1 overflow-y-auto p-8 relative bg-background">
+              <div className="ff-stage max-w-3xl mx-auto rounded-[2rem] shadow-2xl border border-border bg-card min-h-[500px] p-8 pb-16 relative">
+                <div className="mb-8 flex items-start justify-between gap-4 border-b border-border/60 pb-6">
+                  <div>
+                    <div className="mb-2 inline-flex rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Form canvas
+                    </div>
+                    <h1 className="text-3xl font-bold tracking-tight break-words leading-tight">{form.title}</h1>
+                    <p className="mt-2 text-sm text-muted-foreground">Drag, reorder, and refine fields directly on the live canvas.</p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2 rounded-2xl border border-border bg-background px-3 py-2 text-xs text-muted-foreground shadow-sm">
+                    <GripVertical className="h-3.5 w-3.5" />
+                    Drag to reorder
+                  </div>
+                </div>
 
 
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -616,9 +681,12 @@ export default function WorkshopBuilder() {
                 </DndContext>
 
                 {fields.length === 0 && (
-                  <div className="mt-8 border-2 border-dashed border-border rounded-xl p-12 flex flex-col items-center justify-center text-muted-foreground opacity-60">
-                    <Upload className="h-8 w-8 mb-3" />
-                    <span className="text-sm font-medium">Click a field on the left to add it here</span>
+                  <div className="mt-8 rounded-[1.75rem] border border-dashed border-border bg-background p-14 flex flex-col items-center justify-center text-muted-foreground">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-secondary text-secondary-foreground shadow-sm">
+                      <Upload className="h-6 w-6" />
+                    </div>
+                    <span className="text-base font-semibold text-foreground">Start building your form</span>
+                    <span className="mt-1 text-sm">Choose a field from the left panel to place your first block on the canvas.</span>
                   </div>
                 )}
               </div>
@@ -626,6 +694,46 @@ export default function WorkshopBuilder() {
 
             {/* Right: Properties Panel */}
             <div className="w-80 border-l border-border bg-card p-5 overflow-y-auto shrink-0">
+              <div className="mb-5 rounded-[1.35rem] border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
+                    <h3 className="mt-1 text-base font-semibold text-foreground">Response rules</h3>
+                  </div>
+                  {settingsSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3">
+                  <div className="rounded-2xl border border-border bg-background p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Require sign in</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Only signed-in users can submit this form.</p>
+                      </div>
+                      <Switch
+                        checked={!!form.requireSignupToSubmit}
+                        onCheckedChange={(checked) => updateWorkspaceSettings({ requireSignupToSubmit: checked })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border bg-background p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Allow multiple responses</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Turn this off to block repeat submissions from the same IP/network.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={!!form.allowMultipleResponses}
+                        onCheckedChange={(checked) => updateWorkspaceSettings({ allowMultipleResponses: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {!selectedField ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 opacity-60">
                   <Settings className="h-8 w-8" />
@@ -635,7 +743,7 @@ export default function WorkshopBuilder() {
               ) : (
                 <>
                   <div className="flex items-center gap-2 mb-5">
-                    <div className="bg-muted text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-0.5 rounded-full">
+                    <div className="rounded-full border border-border bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                       {selectedField.type.replace('_', ' ')}
                     </div>
                     <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => duplicateField(selectedField.id)} title="Duplicate field">

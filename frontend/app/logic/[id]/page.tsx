@@ -38,6 +38,13 @@ const CustomNode = ({ data }: any) => {
 
 const nodeTypes = { custom: CustomNode };
 
+function formatRuleLabel(rule: any) {
+  const rawValue = rule?.condition?.value;
+  const renderedValue = Array.isArray(rawValue) ? rawValue.join(', ') : rawValue;
+  const hasValue = renderedValue !== undefined && renderedValue !== null && String(renderedValue) !== '';
+  return `${rule?.condition?.op || 'equals'}${hasValue ? ` "${renderedValue}"` : ''} -> ${rule?.action?.type || 'hide'}`;
+}
+
 export default function LogicMap() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
@@ -80,20 +87,37 @@ export default function LogicMap() {
       let edgeId = 0;
       const allEdges: any[] = [];
       fields.forEach((field: any) => {
-        (field.logic || []).forEach((rule: any, ruleIndex: number) => {
+        (field.logic || []).forEach((rule: any) => {
           const sourceId = rule.condition.field === 'self' ? field.id : rule.condition.field;
-          const targets = rule.action.targets || [];
+          if (!sourceId) return;
+
+          if (rule.action?.type === 'jump' && rule.action?.destination) {
+            allEdges.push({
+              id: `edge-${edgeId++}`,
+              source: sourceId,
+              target: rule.action.destination,
+              animated: true,
+              label: formatRuleLabel(rule),
+              labelStyle: { fontSize: 10, fontWeight: 600 },
+              style: { stroke: '#18181b', strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+              data: { rule, ownerFieldId: field.id },
+            });
+            return;
+          }
+
+          const targets = rule.action?.targets || [];
           targets.forEach((targetId: string) => {
             allEdges.push({
               id: `edge-${edgeId++}`,
               source: sourceId,
               target: targetId,
               animated: true,
-              label: `${rule.condition.op} "${rule.condition.value || ''}" → ${rule.action.type}`,
+              label: formatRuleLabel(rule),
               labelStyle: { fontSize: 10, fontWeight: 600 },
               style: { stroke: '#18181b', strokeWidth: 2 },
               markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-              data: { rule, sourceFieldId: field.id, ruleIndex },
+              data: { rule, ownerFieldId: field.id },
             });
           });
         });
@@ -117,17 +141,23 @@ export default function LogicMap() {
   }, []);
 
   const handleModalSave = (rule: any) => {
+    const nextTarget =
+      rule.action?.type === 'jump'
+        ? rule.action?.destination
+        : (rule.action?.targets?.[0] || pendingConnection?.target || editingEdge?.target);
+
     if (pendingConnection) {
       // New edge
       const newEdge = {
         ...pendingConnection,
+        target: nextTarget,
         id: `edge-${Date.now()}`,
         animated: true,
-        label: `${rule.condition.op} "${rule.condition.value || ''}" → ${rule.action.type}`,
+        label: formatRuleLabel(rule),
         labelStyle: { fontSize: 10, fontWeight: 600 },
         style: { stroke: '#18181b', strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-        data: { rule, sourceFieldId: pendingConnection.source },
+        data: { rule, ownerFieldId: pendingConnection.source },
       };
       setEdges((eds) => addEdge(newEdge, eds));
     } else if (editingEdge) {
@@ -137,7 +167,8 @@ export default function LogicMap() {
           e.id === editingEdge.id
             ? {
                 ...e,
-                label: `${rule.condition.op} "${rule.condition.value || ''}" → ${rule.action.type}`,
+                target: nextTarget,
+                label: formatRuleLabel(rule),
                 data: { ...e.data, rule },
               }
             : e
@@ -164,21 +195,43 @@ export default function LogicMap() {
     edges.forEach((edge: any) => {
       const sourceId = edge.source;
       const targetId = edge.target;
+      const ownerFieldId = edge.data?.ownerFieldId || sourceId;
       const rule = edge.data?.rule || {
         condition: { field: 'self', op: 'equals', value: '' },
         action: { type: 'hide', targets: [targetId] },
       };
-      const rules = logicMap.get(sourceId) || [];
-      // Ensure target is in the rule
-      const finalRule = {
+      const rules = logicMap.get(ownerFieldId) || [];
+
+      let finalRule: any = {
         ...rule,
-        action: {
-          ...rule.action,
-          targets: [...new Set([...(rule.action.targets || []), targetId])],
+        condition: {
+          ...rule.condition,
+          field: ownerFieldId === sourceId ? 'self' : sourceId,
         },
       };
+
+      if (rule.action?.type === 'jump') {
+        finalRule = {
+          ...finalRule,
+          action: {
+            ...rule.action,
+            targets: [],
+            destination: targetId,
+          },
+        };
+      } else {
+        finalRule = {
+          ...finalRule,
+          action: {
+            ...rule.action,
+            targets: [targetId],
+            destination: undefined,
+          },
+        };
+      }
+
       rules.push(finalRule);
-      logicMap.set(sourceId, rules);
+      logicMap.set(ownerFieldId, rules);
     });
 
     const updatedFields = (form.fields || []).map((field: any) => ({
@@ -268,7 +321,7 @@ export default function LogicMap() {
             <div className="text-xs text-muted-foreground space-y-2">
               <p><strong>Connect</strong> two fields by dragging from the right handle of a source field to the left handle of a target field.</p>
               <p><strong>Click an edge</strong> to edit its condition and action.</p>
-              <p>Conditions: equals, not equals, contains, greater/less than.</p>
+              <p>Conditions: equals, not equals, contains, starts with, greater/less than, in list.</p>
               <p>Actions: <strong>hide</strong>, <strong>show</strong>, or <strong>jump</strong> to fields.</p>
             </div>
           </div>
@@ -276,6 +329,7 @@ export default function LogicMap() {
 
         {/* Edge config modal */}
         <LogicEdgeModal
+          key={editingEdge?.id || `${pendingConnection?.source || 'new'}-${pendingConnection?.target || 'new'}`}
           open={modalOpen}
           onClose={() => { setModalOpen(false); setPendingConnection(null); setEditingEdge(null); }}
           onSave={handleModalSave}
@@ -289,3 +343,4 @@ export default function LogicMap() {
     </AuthGuard>
   );
 }
+

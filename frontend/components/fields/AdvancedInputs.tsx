@@ -24,22 +24,48 @@ export function DateRangeInput({ label, required, disabled, value, onChange, err
   );
 }
 
-export function FileUploadInput({ label, required, disabled, value, onChange, error }: any) {
+export function FileUploadInput({ label, required, disabled, value, onChange, error, maxSizeMb, allowedTypes }: any) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
+
+  const getResourceType = (file: File) => {
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('video/')) return 'video';
+    return 'raw';
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || disabled) return;
 
+    const maxBytes = Number(maxSizeMb || 10) * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploadError(`File must be ${Number(maxSizeMb || 10)}MB or smaller.`);
+      return;
+    }
+
+    const normalizedAllowedTypes = Array.isArray(allowedTypes)
+      ? allowedTypes.map((type) => String(type).replace(/^\./, '').trim().toLowerCase()).filter(Boolean)
+      : [];
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    if (normalizedAllowedTypes.length && !normalizedAllowedTypes.includes(fileExtension)) {
+      setUploadError(`Allowed file types: ${normalizedAllowedTypes.join(', ')}`);
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
     setUploadError('');
+    // Mark field as pending upload so form submit can't pass with an incomplete file object.
+    onChange?.({ __uploading: true, original_name: file.name });
 
     try {
+      const resourceType = getResourceType(file);
+
       // Get signed upload params from backend
-      const signRes = await signUpload('formflow/uploads');
+      const signRes = await signUpload('formflow/uploads', resourceType);
       const { cloudName, apiKey, folder, timestamp, signature } = signRes.data;
 
       // Upload directly to Cloudinary
@@ -51,7 +77,7 @@ export function FileUploadInput({ label, required, disabled, value, onChange, er
       formData.append('folder', folder);
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
 
       xhr.upload.onprogress = (ev) => {
         if (ev.lengthComputable) {
@@ -62,22 +88,41 @@ export function FileUploadInput({ label, required, disabled, value, onChange, er
       xhr.onload = () => {
         setUploading(false);
         if (xhr.status >= 200 && xhr.status < 300) {
-          const result = JSON.parse(xhr.responseText);
-          onChange?.({
-            cloudinary_public_id: result.public_id,
-            url: result.secure_url,
-            original_name: file.name,
-            size_bytes: file.size,
-            format: result.format,
-          });
+          try {
+            const result = JSON.parse(xhr.responseText);
+            if (!result?.public_id || !result?.secure_url) {
+              setUploadError('Upload did not return a valid file URL. Please try again.');
+              onChange?.(null);
+              return;
+            }
+            onChange?.({
+              cloudinary_public_id: result.public_id,
+              url: result.secure_url,
+              original_name: file.name,
+              size_bytes: file.size,
+              format: result.format,
+              resource_type: result.resource_type || resourceType,
+            });
+          } catch {
+            setUploadError('Upload failed. Invalid server response.');
+            onChange?.(null);
+          }
         } else {
-          setUploadError('Upload failed. Please try again.');
+          try {
+            const result = JSON.parse(xhr.responseText);
+            setUploadError(result?.error?.message || 'Upload failed. Please try again.');
+            onChange?.(null);
+          } catch {
+            setUploadError('Upload failed. Please try again.');
+            onChange?.(null);
+          }
         }
       };
 
       xhr.onerror = () => {
         setUploading(false);
         setUploadError('Upload failed. Check your connection.');
+        onChange?.(null);
       };
 
       xhr.send(formData);
@@ -137,12 +182,19 @@ export function FileUploadInput({ label, required, disabled, value, onChange, er
             <>
               <Upload className="h-8 w-8 text-muted-foreground mb-3" />
               <p className="text-sm text-foreground font-medium">Click or drag file to upload</p>
-              <p className="text-xs text-muted-foreground mt-1">PDF, Images, Documents up to 10MB</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {Array.isArray(allowedTypes) && allowedTypes.length
+                  ? `${allowedTypes.join(', ')} up to ${Number(maxSizeMb || 10)}MB`
+                  : `PDF, Images, Documents up to ${Number(maxSizeMb || 10)}MB`}
+              </p>
             </>
           )}
           {!uploading && (
             <input
               type="file"
+              accept={Array.isArray(allowedTypes) && allowedTypes.length
+                ? allowedTypes.map((type) => `.${String(type).replace(/^\./, '').trim()}`).join(',')
+                : '.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp'}
               disabled={disabled}
               onChange={handleFileSelect}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"

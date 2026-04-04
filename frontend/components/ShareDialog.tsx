@@ -36,6 +36,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [shareToken, setShareToken] = useState('');
   const [requireSignup, setRequireSignup] = useState(false);
+  const [allowMultipleResponses, setAllowMultipleResponses] = useState(false);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -44,6 +45,8 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
   const [copiedLink, setCopiedLink] = useState<'public' | 'collab' | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'collaborate' | 'publish'>('collaborate');
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +56,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
       setCollaborators(res.data.collaborators || []);
       setShareToken(res.data.shareToken || '');
       setRequireSignup(res.data.requireSignupToSubmit || false);
+      setAllowMultipleResponses(res.data.allowMultipleResponses || false);
     } finally {
       setLoading(false);
     }
@@ -103,11 +107,34 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
   };
 
   const handleToggleSignup = async (checked: boolean) => {
+    const previous = requireSignup;
     setRequireSignup(checked);
+    setSettingsError('');
+    setSettingsSaving(true);
     try {
       await updateFormSettings(formId, { requireSignupToSubmit: checked });
-    } catch {
-      setRequireSignup(!checked);
+      await load();
+    } catch (err: any) {
+      setRequireSignup(previous);
+      setSettingsError(err.response?.data?.message || 'Could not update submission settings');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const handleToggleMultipleResponses = async (checked: boolean) => {
+    const previous = allowMultipleResponses;
+    setAllowMultipleResponses(checked);
+    setSettingsError('');
+    setSettingsSaving(true);
+    try {
+      await updateFormSettings(formId, { allowMultipleResponses: checked });
+      await load();
+    } catch (err: any) {
+      setAllowMultipleResponses(previous);
+      setSettingsError(err.response?.data?.message || 'Could not update submission settings');
+    } finally {
+      setSettingsSaving(false);
     }
   };
 
@@ -132,7 +159,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-[520px] !p-0 !gap-0 overflow-hidden">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-[560px] !p-0 !gap-0 overflow-hidden">
         <div className="px-5 pt-5 pb-4">
           <DialogTitle className="text-lg font-bold">Share Form</DialogTitle>
         </div>
@@ -175,15 +202,15 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                 <Mail className="h-4 w-4 text-primary" />
                 Invite by Email
               </h3>
-              <form onSubmit={handleInvite} className="flex gap-2">
+              <form onSubmit={handleInvite} className="flex items-stretch gap-2 min-w-0">
                 <Input
                   placeholder="colleague@example.com"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 h-9"
+                  className="flex-1 min-w-0 h-9"
                 />
-                <Button type="submit" disabled={inviteLoading || !email.trim()} className="shrink-0 h-9">
+                <Button type="submit" disabled={inviteLoading || !email.trim()} className="shrink-0 h-9 px-3">
                   {inviteLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -225,7 +252,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
               <p className="text-xs text-muted-foreground mb-2">
                 Anyone with this link can join as a collaborator (requires login).
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-stretch gap-2 min-w-0">
                 <div className="flex-1 flex items-center bg-muted rounded-lg px-3 h-9 text-xs font-mono text-muted-foreground truncate border border-border">
                   {collabUrl}
                 </div>
@@ -273,7 +300,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                       <p className="text-sm font-semibold truncate">{owner.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{owner.email}</p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
+                    <div className="ml-2 flex items-center gap-1.5 text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
                       <Crown className="h-3 w-3" /> Owner
                     </div>
                   </div>
@@ -355,10 +382,13 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
 
             {/* Submission settings */}
             <div className="border-t border-border pt-5">
-              <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                Submission Settings
-              </h3>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Submission Settings
+                </h3>
+                {settingsSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
                 <div className="flex items-center gap-3">
@@ -375,8 +405,31 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                 <Switch
                   checked={requireSignup}
                   onCheckedChange={handleToggleSignup}
+                  disabled={settingsSaving}
                 />
               </div>
+
+              <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Globe className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Allow Multiple Responses</p>
+                    <p className="text-xs text-muted-foreground">
+                      If off, one response per IP/network is allowed. If on, repeat submissions are accepted.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={allowMultipleResponses}
+                  onCheckedChange={handleToggleMultipleResponses}
+                  disabled={settingsSaving}
+                />
+              </div>
+              {settingsError && (
+                <p className="mt-2 text-xs font-medium text-destructive">{settingsError}</p>
+              )}
             </div>
           </div>
         )}

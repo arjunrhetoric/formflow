@@ -18,5 +18,8 @@ publicApi.interceptors.request.use((config) => {
 export const getPublicForm = (slug: string) =>
   publicApi.get(`/api/public/forms/${slug}`);
 
+export const validateForm = (slug: string, answers: Record<string, unknown>) =>
+  publicApi.post(`/api/public/forms/${slug}/validate`, { answers });
+
 export const submitForm = (slug: string, answers: Record<string, unknown>, completionTime?: number) =>
   publicApi.post(`/api/public/forms/${slug}/submit`, { answers, completionTime });

@@ -235,7 +235,8 @@ router.get(
         role: "collaborator"
       })),
       shareToken: form.shareToken,
-      requireSignupToSubmit: form.requireSignupToSubmit || false
+      requireSignupToSubmit: form.requireSignupToSubmit || false,
+      allowMultipleResponses: form.allowMultipleResponses || false
     });
   })
 );
@@ -354,6 +355,10 @@ router.patch(
 
     if (req.body.requireSignupToSubmit !== undefined) {
       form.requireSignupToSubmit = !!req.body.requireSignupToSubmit;
+    }
+
+    if (req.body.allowMultipleResponses !== undefined) {
+      form.allowMultipleResponses = !!req.body.allowMultipleResponses;
     }
 
     await form.save();

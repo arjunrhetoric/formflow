@@ -21,6 +21,55 @@ function optionalAuth(req) {
   } catch { return null; }
 }
 
+function getClientIp(req) {
+  const candidates = [
+    req.headers["cf-connecting-ip"],
+    req.headers["x-real-ip"],
+    req.headers["x-forwarded-for"],
+    req.ip,
+    req.socket?.remoteAddress
+  ];
+
+  for (const candidate of candidates) {
+    const rawValue = Array.isArray(candidate)
+      ? candidate[0]
+      : typeof candidate === "string"
+        ? candidate.split(",")[0]
+        : candidate;
+
+    let normalized = String(rawValue || "")
+      .replace(/^::ffff:/, "")
+      .trim()
+      .toLowerCase();
+
+    // Some proxies include port in forwarded IP values (e.g. "1.2.3.4:5678").
+    if (/^\d{1,3}(\.\d{1,3}){3}:\d+$/.test(normalized)) {
+      normalized = normalized.split(":")[0];
+    }
+
+    if (!normalized) {
+      continue;
+    }
+
+    if (["::1", "127.0.0.1", "localhost", "::ffff:127.0.0.1"].includes(normalized)) {
+      return "local";
+    }
+
+    return normalized;
+  }
+
+  return "";
+}
+
+function isDuplicateIpSubmissionError(err) {
+  return (
+    err?.code === 11000 &&
+    Object.prototype.hasOwnProperty.call(err?.keyPattern || {}, "formId") &&
+    Object.prototype.hasOwnProperty.call(err?.keyPattern || {}, "respondentMeta.ip") &&
+    Object.prototype.hasOwnProperty.call(err?.keyPattern || {}, "onePerIpEnforced")
+  );
+}
+
 router.get(
   "/forms/:slug",
   asyncHandler(async (req, res) => {
@@ -37,7 +86,8 @@ router.get(
         version: form.version,
         theme: form.theme,
         fields: form.fields,
-        requireSignupToSubmit: form.requireSignupToSubmit || false
+        requireSignupToSubmit: form.requireSignupToSubmit || false,
+        allowMultipleResponses: form.allowMultipleResponses || false
       }
     });
   })
@@ -79,20 +129,49 @@ router.post(
       if (userId) submittedBy = userId;
     }
 
+    const clientIp = getClientIp(req);
+    const existingResponse = !form.allowMultipleResponses && clientIp
+      ? await Response.findOne({
+          formId: form._id,
+          "respondentMeta.ip": clientIp
+        }).lean()
+      : null;
+
+    if (existingResponse) {
+      throw new AppError(409, "This form has already been submitted from this network.", {
+        errors: {
+          _form: "A response from this network has already been recorded for this form. If you think this is a mistake, contact the form owner."
+        }
+      });
+    }
+
     const answers = req.body.answers || {};
     const validationResult = assertValidSubmission(form, answers);
 
-    const response = await Response.create({
-      formId: form._id,
-      formVersion: form.version,
-      submittedBy,
-      answers,
-      respondentMeta: {
-        ip: req.ip || "",
-        userAgent: req.headers["user-agent"] || "",
-        completionTime: Number(req.body.completionTime) || 0
+    let response;
+    try {
+      response = await Response.create({
+        formId: form._id,
+        formVersion: form.version,
+        submittedBy,
+        answers: validationResult.normalizedAnswers,
+        respondentMeta: {
+          ip: clientIp,
+          userAgent: req.headers["user-agent"] || "",
+          completionTime: Number(req.body.completionTime) || 0
+        },
+        onePerIpEnforced: !form.allowMultipleResponses && !!clientIp
+      });
+    } catch (err) {
+      if (isDuplicateIpSubmissionError(err)) {
+        throw new AppError(409, "This form has already been submitted from this network.", {
+          errors: {
+            _form: "A response from this network has already been recorded for this form. If you think this is a mistake, contact the form owner."
+          }
+        });
       }
-    });
+      throw err;
+    }
 
     res.status(201).json({
       response,

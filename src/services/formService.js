@@ -93,6 +93,14 @@ async function updateForm(form, actorId, payload) {
     form.fields = sanitized.fields;
   }
 
+  if (Object.prototype.hasOwnProperty.call(payload, "requireSignupToSubmit")) {
+    form.requireSignupToSubmit = sanitized.requireSignupToSubmit;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "allowMultipleResponses")) {
+    form.allowMultipleResponses = sanitized.allowMultipleResponses;
+  }
+
   form.version += 1;
 
   await form.save();
@@ -118,6 +126,8 @@ async function restoreForm(form, historyId, actorId) {
   form.collaborators = snapshot.collaborators || [];
   form.theme = snapshot.theme || { preset: "minimal", custom_css: "" };
   form.fields = snapshot.fields || [];
+  form.requireSignupToSubmit = !!snapshot.requireSignupToSubmit;
+  form.allowMultipleResponses = !!snapshot.allowMultipleResponses;
   form.version += 1;
 
   await form.save();

@@ -1,11 +1,18 @@
 'use client';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { FieldWrapper } from './FieldWrapper';
 import { Button } from '../ui/Button';
 
 export function SignaturePadField({ label, required, disabled, value, onChange, error }: any) {
   const padRef = useRef<SignatureCanvas>(null);
+  const [penColor, setPenColor] = useState('#18181b');
+
+  useEffect(() => {
+    const stage = document.querySelector('.ff-stage');
+    const isDark = document.documentElement.classList.contains('dark') || stage?.classList.contains('dark');
+    setPenColor(isDark ? '#f8fafc' : '#18181b');
+  }, []);
 
   return (
     <FieldWrapper label={label} required={required} error={error}>
@@ -13,7 +20,7 @@ export function SignaturePadField({ label, required, disabled, value, onChange, 
         <div className={`absolute inset-0 z-10 ${disabled ? '' : 'hidden'}`} />
         <SignatureCanvas
           ref={padRef}
-          penColor="#18181b"
+          penColor={penColor}
           canvasProps={{ className: 'w-full h-32 opacity-80', style: { pointerEvents: disabled ? 'none' : 'auto' } }}
           onEnd={() => {
             if (padRef.current && !padRef.current.isEmpty()) {

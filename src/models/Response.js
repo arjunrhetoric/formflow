@@ -24,10 +24,27 @@ const responseSchema = new mongoose.Schema(
       ip: { type: String, default: "" },
       userAgent: { type: String, default: "" },
       completionTime: { type: Number, default: 0 }
+    },
+    onePerIpEnforced: {
+      type: Boolean,
+      default: false,
+      index: true
     }
   },
   {
     timestamps: true
+  }
+);
+
+responseSchema.index({ formId: 1, "respondentMeta.ip": 1 });
+responseSchema.index(
+  { formId: 1, "respondentMeta.ip": 1, onePerIpEnforced: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      onePerIpEnforced: true,
+      "respondentMeta.ip": { $exists: true, $nin: [""] }
+    }
   }
 );
 

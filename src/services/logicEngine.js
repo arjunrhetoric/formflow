@@ -12,14 +12,43 @@ function normalizeComparable(value) {
 function evaluateCondition(answer, condition) {
   const comparableAnswer = normalizeComparable(answer);
   const comparableValue = normalizeComparable(condition.value);
+  const answerIsArray = Array.isArray(answer);
+  const conditionIsArray = Array.isArray(condition.value);
 
   switch (condition.op) {
     case "equals":
+      if (answerIsArray) {
+        if (conditionIsArray) {
+          return (
+            answer.length === condition.value.length &&
+            condition.value.every((value) => answer.includes(value))
+          );
+        }
+        return answer.includes(condition.value);
+      }
       return answer === condition.value;
     case "not_equals":
+      if (answerIsArray) {
+        if (conditionIsArray) {
+          return !(
+            answer.length === condition.value.length &&
+            condition.value.every((value) => answer.includes(value))
+          );
+        }
+        return !answer.includes(condition.value);
+      }
       return answer !== condition.value;
     case "contains":
-      return typeof answer === "string" && answer.includes(condition.value);
+      if (typeof answer === "string") {
+        return answer.includes(String(condition.value ?? ""));
+      }
+      if (answerIsArray) {
+        if (conditionIsArray) {
+          return condition.value.every((value) => answer.includes(value));
+        }
+        return answer.includes(condition.value);
+      }
+      return false;
     case "starts_with":
       return typeof answer === "string" && answer.startsWith(condition.value);
     case "gt":
@@ -38,11 +67,13 @@ function evaluateCondition(answer, condition) {
         (Array.isArray(answer) && answer.length === 0)
       );
     case "in_list":
-      return (
-        Array.isArray(answer) &&
-        Array.isArray(condition.value) &&
-        condition.value.some((value) => answer.includes(value))
-      );
+      if (!conditionIsArray) {
+        return false;
+      }
+      if (answerIsArray) {
+        return condition.value.some((value) => answer.includes(value));
+      }
+      return condition.value.includes(answer);
     default:
       return false;
   }
@@ -51,6 +82,15 @@ function evaluateCondition(answer, condition) {
 function buildLogicState(form, answers) {
   const hiddenFieldIds = new Set();
   let jumpTo = null;
+
+  // Targets of "show" rules start hidden until a matching rule reveals them.
+  for (const field of form.fields) {
+    for (const rule of field.logic || []) {
+      if (rule.action.type === "show") {
+        (rule.action.targets || []).forEach((target) => hiddenFieldIds.add(target));
+      }
+    }
+  }
 
   for (const field of form.fields) {
     for (const rule of field.logic || []) {
