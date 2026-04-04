@@ -69,6 +69,15 @@ export default function ResponseVault() {
     ? Math.round(responses.reduce((s, r) => s + (r.respondentMeta?.completionTime || 0), 0) / responses.length)
     : 0;
 
+  const downloadDataUrl = (dataUrl: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <AuthGuard>
       <Sidebar>
@@ -180,8 +189,39 @@ export default function ResponseVault() {
                             let display: any = '—';
                             if (value !== undefined && value !== null) {
                               if (Array.isArray(value)) display = value.join(', ');
-                              else if (typeof value === 'object' && value.original_name) display = value.original_name;
-                              else if (typeof value === 'string' && value.startsWith('data:image')) display = '🖊 Signature';
+                              else if (typeof value === 'object' && value.url) {
+                                const fileName = value.original_name || 'uploaded-file';
+                                display = (
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <span className="truncate max-w-[180px]" title={fileName}>{fileName}</span>
+                                    <a
+                                      href={value.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-xs font-medium text-primary hover:underline shrink-0"
+                                    >
+                                      View
+                                    </a>
+                                    <a
+                                      href={value.url}
+                                      download={fileName}
+                                      className="text-xs font-medium text-primary hover:underline shrink-0"
+                                    >
+                                      Download
+                                    </a>
+                                  </div>
+                                );
+                              } else if (typeof value === 'string' && value.startsWith('data:image')) {
+                                display = (
+                                  <button
+                                    type="button"
+                                    onClick={() => downloadDataUrl(value, `${f.label || 'signature'}-${r._id}.png`)}
+                                    className="text-xs font-medium text-primary hover:underline"
+                                  >
+                                    Download signature
+                                  </button>
+                                );
+                              }
                               else display = String(value);
                             }
                             return (
