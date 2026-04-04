@@ -52,8 +52,7 @@ export function NumberInput({ label, required, disabled, value, onChange, error,
           value={value || ''}
           placeholder={placeholder || '0'}
           onChange={(e) => {
-            const nextValue = e.target.value;
-            onChange?.(nextValue === '' ? '' : Number(nextValue));
+            onChange?.(e.target.value);
           }}
           error={!!error}
           min={min}
