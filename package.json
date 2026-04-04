@@ -2,14 +2,14 @@
   "name": "formflow-backend",
   "version": "1.0.0",
   "description": "Schema-first backend and realtime server for FormFlow",
-  "main": "src/server.js",
+  "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "check": "node --check src/server.js && node --check src/app.js && node --check src/routes/authRoutes.js && node --check src/routes/formRoutes.js && node --check src/routes/publicRoutes.js && node --check src/routes/uploadRoutes.js && node --check src/sockets/index.js",
-    "dev": "node --watch src/server.js",
+    "check": "node --check server.js && node --check src/app.js && node --check src/routes/authRoutes.js && node --check src/routes/formRoutes.js && node --check src/routes/publicRoutes.js && node --check src/routes/uploadRoutes.js && node --check src/sockets/index.js",
+    "dev": "node --watch server.js",
     "seed": "node scripts/seedDemo.js",
     "smoke": "node scripts/smokeTest.js",
-    "start": "node src/server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18.0.0"
