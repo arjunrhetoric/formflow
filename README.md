@@ -32,7 +32,7 @@ The core architectural bet: **every field's config is a free-form MongoDB docume
 
 ## Wireframe
 
-![FormFlow Wireframe](./wireframe.svg)
+![FormFlow Wireframe](./wireframe.jpeg)
 
 > Early architecture wireframe mapping the Workshop Builder, Stage renderer, Logic Map, and Response Vault user flows.
 
