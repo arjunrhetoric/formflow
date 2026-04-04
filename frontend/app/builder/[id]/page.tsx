@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getForm, updateForm } from '@/lib/api/forms';
 import { useAuth } from '@/context/AuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
+import { THEME_PRESETS } from '@/lib/themes';
 import { RemoteCursors } from '@/components/RemoteCursors';
 import { PresenceAvatars } from '@/components/PresenceAvatars';
 import { ShareDialog } from '@/components/ShareDialog';
@@ -333,6 +334,11 @@ export default function WorkshopBuilder() {
   const [saving, setSaving] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
+  // Extract Theme Configuration
+  const preset = form?.theme?.preset || 'minimal';
+  const theme = THEME_PRESETS[preset] || THEME_PRESETS.minimal;
+  const customCss = form?.theme?.custom_css || '';
+
   // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState<any[][]>([]);
   const [redoStack, setRedoStack] = useState<any[][]>([]);
@@ -585,9 +591,11 @@ export default function WorkshopBuilder() {
             </div>
 
             {/* Center: Canvas */}
-            <div className="flex-1 dot-grid overflow-y-auto p-8 relative">
-              <div className="max-w-2xl mx-auto bg-card rounded-xl shadow-sm border border-border min-h-[500px] p-8 pb-16 relative">
+            <div className={`flex-1 dot-grid overflow-y-auto p-8 relative ${theme.bodyClass}`}>
+              <style dangerouslySetInnerHTML={{ __html: theme.css + '\n' + customCss }} />
+              <div className={`ff-stage max-w-2xl mx-auto rounded-xl shadow-xl border min-h-[500px] p-8 pb-16 relative ${theme.cardClass}`}>
                 <h1 className="text-3xl font-bold tracking-tight mb-8 break-words leading-tight">{form.title}</h1>
+
 
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>

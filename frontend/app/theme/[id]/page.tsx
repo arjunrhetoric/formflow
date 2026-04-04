@@ -7,55 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { FieldComponents } from '@/components/fields';
 import { ChevronLeft, Loader2, Check, Palette, Code } from 'lucide-react';
 
-const PRESETS = [
-  {
-    id: 'minimal',
-    label: 'Minimal',
-    desc: 'Clean, white Notion-style',
-    css: '',
-    preview: { bg: '#ffffff', accent: '#18181b', text: '#09090b' },
-  },
-  {
-    id: 'bold',
-    label: 'Bold',
-    desc: 'Dark bg, vivid colors, large type',
-    css: `
-      .ff-stage label { color: #fafafa; }
-      .ff-stage .text-muted-foreground { color: #a1a1aa; }
-      .ff-stage input, .ff-stage textarea, .ff-stage select {
-        background: #27272a; border-color: #3f3f46; color: #fafafa;
-      }
-      .ff-stage input::placeholder, .ff-stage textarea::placeholder { color: #71717a; }
-    `,
-    preview: { bg: '#09090b', accent: '#8b5cf6', text: '#ffffff' },
-  },
-  {
-    id: 'glassmorphism',
-    label: 'Glassmorphism',
-    desc: 'Frosted glass, gradient backdrop',
-    css: `
-      .ff-stage label { color: #ffffff; }
-      .ff-stage .text-muted-foreground { color: rgba(255,255,255,0.7); }
-      .ff-stage input, .ff-stage textarea, .ff-stage select {
-        background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: #ffffff;
-      }
-      .ff-stage input::placeholder, .ff-stage textarea::placeholder { color: rgba(255,255,255,0.5); }
-      .ff-stage button[type="submit"] { background: rgba(255,255,255,0.25); backdrop-filter: blur(8px); }
-    `,
-    preview: { bg: 'linear-gradient(135deg, #7c3aed, #3b82f6, #06b6d4)', accent: '#ffffff', text: '#ffffff' },
-  },
-  {
-    id: 'corporate',
-    label: 'Corporate',
-    desc: 'Navy + white, serif typography',
-    css: `
-      .ff-stage { font-family: Georgia, 'Times New Roman', serif; }
-      .ff-stage h1 { color: #1e3a5f; }
-      .ff-stage button[type="submit"] { background: #1e3a5f; }
-    `,
-    preview: { bg: '#f0f2f5', accent: '#1e3a5f', text: '#1e3a5f' },
-  },
-];
+import { THEME_PRESETS_ARRAY, THEME_PRESETS } from '@/lib/themes';
 
 const CSS_PLACEHOLDER = `/* ─── FormFlow CSS Reference ───
  *
@@ -121,7 +73,7 @@ export default function ThemeEditor() {
     );
   }
 
-  const currentPreset = PRESETS.find((p) => p.id === activePreset) || PRESETS[0];
+  const currentPreset = THEME_PRESETS[activePreset] || THEME_PRESETS_ARRAY[0];
 
   return (
     <AuthGuard>
@@ -157,7 +109,7 @@ export default function ThemeEditor() {
                 <h3 className="font-bold text-sm">Preset Themes</h3>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {PRESETS.map((preset) => (
+                {THEME_PRESETS_ARRAY.map((preset) => (
                   <button
                     key={preset.id}
                     onClick={() => setActivePreset(preset.id)}
@@ -216,8 +168,7 @@ export default function ThemeEditor() {
           {/* Right: Live Preview */}
           <div className="flex-1 overflow-y-auto">
             <div
-              className="p-8 flex flex-col items-center min-h-full"
-              style={{ background: currentPreset.preview.bg }}
+              className={`ff-stage p-8 flex flex-col items-center min-h-full ${currentPreset.bodyClass}`}
             >
               {/* Inject preset + custom CSS into the live preview */}
               <style dangerouslySetInnerHTML={{ __html: currentPreset.css + '\n' + css }} />
@@ -226,59 +177,45 @@ export default function ThemeEditor() {
                 Live Preview — {currentPreset.label}
               </div>
 
-              <div
-                className="ff-stage w-full max-w-2xl rounded-2xl p-8 sm:p-12 min-h-[400px]"
-                style={{
-                  background: activePreset === 'glassmorphism' ? 'rgba(255,255,255,0.2)' : activePreset === 'bold' ? '#18181b' : '#ffffff',
-                  backdropFilter: activePreset === 'glassmorphism' ? 'blur(16px)' : undefined,
-                  border: `1px solid ${activePreset === 'bold' ? '#27272a' : activePreset === 'glassmorphism' ? 'rgba(255,255,255,0.3)' : '#e4e4e7'}`,
-                  boxShadow: '0 24px 48px rgba(0,0,0,0.12)',
-                }}
-              >
-                <h1
-                  className="text-3xl font-bold mb-8"
-                  style={{ color: currentPreset.preview.text, fontFamily: activePreset === 'corporate' ? 'Georgia, serif' : 'Inter, sans-serif' }}
-                >
-                  {form.title}
-                </h1>
+              <div className="w-full max-w-2xl">
+                <div className={`shadow-xl border rounded-2xl p-8 sm:p-12 ${currentPreset.cardClass}`}>
+                  <h1 className="text-3xl font-bold tracking-tight mb-8 break-words">
+                    {form.title}
+                  </h1>
 
-                {/* Render ALL form fields in preview */}
-                <div className="space-y-6">
-                  {(form.fields || []).map((f: any) => {
-                    const Comp = FieldComponents[f.type] || FieldComponents.short_text;
-                    const options = Array.isArray(f.config?.options)
-                      ? f.config.options.map((o: any) => typeof o === 'string' ? { label: o, value: o } : o)
-                      : [];
-                    return (
-                      <div key={f.id}>
-                        <Comp
-                          label={f.label}
-                          required={!!f.validation?.required}
-                          disabled
-                          options={options}
-                          placeholder={f.config?.placeholder}
-                          maxStars={f.config?.max_stars}
-                        />
+                  {/* Render ALL form fields in preview */}
+                  <form className="flex flex-col gap-7" onSubmit={(e) => e.preventDefault()}>
+                    {(form.fields || []).map((f: any) => {
+                      const Comp = FieldComponents[f.type] || FieldComponents.short_text;
+                      const options = Array.isArray(f.config?.options)
+                        ? f.config.options.map((o: any) => typeof o === 'string' ? { label: o, value: o } : o)
+                        : [];
+                      return (
+                        <div key={f.id} className="overflow-hidden">
+                          <Comp
+                            label={f.label}
+                            required={!!f.validation?.required}
+                            disabled
+                            options={options}
+                            placeholder={f.config?.placeholder}
+                            maxStars={f.config?.max_stars}
+                          />
+                        </div>
+                      );
+                    })}
+                    {(form.fields || []).length === 0 && (
+                      <div className="text-center py-12 opacity-50" style={{ color: currentPreset.preview.text }}>
+                        Add fields in the Workshop to preview them here
                       </div>
-                    );
-                  })}
-                  {(form.fields || []).length === 0 && (
-                    <div className="text-center py-12 opacity-50" style={{ color: currentPreset.preview.text }}>
-                      Add fields in the Workshop to preview them here
+                    )}
+                    
+                    {/* Submit button preview */}
+                    <div className="pt-6 mt-2 border-t border-border/50 flex justify-end">
+                      <Button type="submit" size="lg" className="w-full sm:w-auto h-12 px-8 text-base shadow-md disabled:opacity-50 gap-2" disabled>
+                         Submit
+                      </Button>
                     </div>
-                  )}
-                </div>
-
-                {/* Submit button preview */}
-                <div className="mt-8 pt-6 border-t" style={{ borderColor: activePreset === 'bold' ? '#3f3f46' : '#e4e4e7' }}>
-                  <button
-                    type="submit"
-                    className="h-12 w-full rounded-xl flex items-center justify-center text-sm font-semibold"
-                    style={{ backgroundColor: currentPreset.preview.accent, color: activePreset === 'minimal' || activePreset === 'corporate' ? '#ffffff' : currentPreset.preview.bg.startsWith('#') ? currentPreset.preview.bg : '#000' }}
-                    disabled
-                  >
-                    Submit
-                  </button>
+                  </form>
                 </div>
               </div>
             </div>

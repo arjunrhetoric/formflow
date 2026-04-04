@@ -5,7 +5,7 @@ import { SocketProvider } from '@/context/SocketContext';
 import { ToastProvider } from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
-  title: "FormFlow - The Architect's Canvas",
+  title: "FormFlow",
   description: 'Precision form builder architecture.',
 };
 

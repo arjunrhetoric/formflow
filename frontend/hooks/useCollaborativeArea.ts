@@ -51,8 +51,7 @@ export function useCollaborativeArea(formId: string, loadForm?: () => void) {
 
   // Mouse tracking + cursor emission
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !user || !connected) return;
+    if (!user || !connected) return;
 
     let lastEmit = 0;
     let rafId: number | null = null;
@@ -95,11 +94,11 @@ export function useCollaborativeArea(formId: string, loadForm?: () => void) {
       }
     };
 
-    canvas.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      canvas.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (rafId) cancelAnimationFrame(rafId);
     };

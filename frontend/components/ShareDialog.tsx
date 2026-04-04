@@ -133,7 +133,9 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[520px] !p-0 !gap-0 overflow-hidden">
-        <DialogTitle className="sr-only">Share Form</DialogTitle>
+        <div className="px-5 pt-5 pb-4">
+          <DialogTitle className="text-lg font-bold">Share Form</DialogTitle>
+        </div>
 
         {/* Tabs */}
         <div className="flex border-b border-border">
@@ -179,9 +181,9 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 h-9"
                 />
-                <Button type="submit" disabled={inviteLoading || !email.trim()} className="shrink-0">
+                <Button type="submit" disabled={inviteLoading || !email.trim()} className="shrink-0 h-9">
                   {inviteLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -196,7 +198,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="text-xs text-destructive mt-2 font-medium"
+                    className="text-xs text-destructive mt-2 font-medium overflow-hidden"
                   >
                     {inviteError}
                   </motion.p>
@@ -206,7 +208,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="text-xs text-green-600 mt-2 font-medium"
+                    className="text-xs text-green-600 mt-2 font-medium overflow-hidden"
                   >
                     ✓ {inviteSuccess}
                   </motion.p>
@@ -285,7 +287,7 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -8, height: 0 }}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors group"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors group overflow-hidden"
                     >
                       <div
                         className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm"

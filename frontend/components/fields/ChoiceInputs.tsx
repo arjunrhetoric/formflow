@@ -33,12 +33,14 @@ export function ChoiceInput({ label, required, disabled, options, value, onChang
         options={options}
         value={parsedValue}
         onChange={(v: any) => {
-          if (!v) return onChange?.(isMulti ? [] : '');
+          if (!v || (Array.isArray(v) && v.length === 0)) return onChange?.(isMulti ? [] : '');
           if (isMulti) onChange?.((v as OptionType[]).map((o) => o.value));
           else onChange?.((v as OptionType).value);
         }}
         classNamePrefix="react-select"
         className="text-sm"
+        menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
       />
     </FieldWrapper>
   );

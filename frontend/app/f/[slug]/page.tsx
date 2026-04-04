@@ -9,48 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { FieldComponents } from '@/components/fields';
 import { CheckCircle, Loader2, Send, LogIn, UserPlus } from 'lucide-react';
 
-/* ───── Theme Preset CSS ───── */
-const THEME_PRESETS: Record<string, { bodyClass: string; cardClass: string; css: string }> = {
-  minimal: {
-    bodyClass: 'bg-[#fafafa]',
-    cardClass: 'bg-white border-[#e4e4e7]',
-    css: '',
-  },
-  bold: {
-    bodyClass: 'bg-[#09090b]',
-    cardClass: 'bg-[#18181b] border-[#27272a] text-white',
-    css: `
-      .ff-stage label { color: #fafafa; }
-      .ff-stage .text-muted-foreground { color: #a1a1aa; }
-      .ff-stage input, .ff-stage textarea, .ff-stage select {
-        background: #27272a; border-color: #3f3f46; color: #fafafa;
-      }
-      .ff-stage input::placeholder, .ff-stage textarea::placeholder { color: #71717a; }
-    `,
-  },
-  glassmorphism: {
-    bodyClass: 'bg-gradient-to-br from-purple-600 via-blue-500 to-cyan-400',
-    cardClass: 'bg-white/20 backdrop-blur-xl border-white/30 text-white shadow-2xl',
-    css: `
-      .ff-stage label { color: #ffffff; }
-      .ff-stage .text-muted-foreground { color: rgba(255,255,255,0.7); }
-      .ff-stage input, .ff-stage textarea, .ff-stage select {
-        background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: #ffffff;
-      }
-      .ff-stage input::placeholder, .ff-stage textarea::placeholder { color: rgba(255,255,255,0.5); }
-      .ff-stage button[type="submit"] { background: rgba(255,255,255,0.25); backdrop-filter: blur(8px); }
-    `,
-  },
-  corporate: {
-    bodyClass: 'bg-[#f0f2f5]',
-    cardClass: 'bg-white border-[#1e3a5f] border-2',
-    css: `
-      .ff-stage { font-family: Georgia, 'Times New Roman', serif; }
-      .ff-stage h1 { color: #1e3a5f; }
-      .ff-stage button[type="submit"] { background: #1e3a5f; }
-    `,
-  },
-};
+import { THEME_PRESETS } from '@/lib/themes';
 
 /* ───── Logic Evaluation Engine (mirrors backend logicEngine.js) ───── */
 function evaluateCondition(answer: any, condition: any): boolean {
@@ -76,6 +35,16 @@ function evaluateCondition(answer: any, condition: any): boolean {
 
 function evaluateLogic(fields: any[], answers: Record<string, any>): Set<string> {
   const hidden = new Set<string>();
+
+  // Implicitly hide all targets of 'show' rules initially
+  for (const field of fields) {
+    for (const rule of field.logic || []) {
+      if (rule.action.type === 'show') {
+        (rule.action.targets || []).forEach((t: string) => hidden.add(t));
+      }
+    }
+  }
+
   for (const field of fields) {
     for (const rule of field.logic || []) {
       const refFieldId = rule.condition.field === 'self' ? field.id : rule.condition.field;
@@ -221,7 +190,7 @@ export default function StagePage() {
 
   if (submitted) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center p-8 text-center ${theme.bodyClass}`}>
+      <div className={`ff-stage min-h-screen flex flex-col items-center justify-center p-8 text-center ${theme.bodyClass}`}>
         <style dangerouslySetInnerHTML={{ __html: theme.css + '\n' + customCss }} />
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
