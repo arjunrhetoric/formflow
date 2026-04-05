@@ -165,12 +165,12 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-border">
+        <div className="flex border-b border-border px-5 gap-6">
           <button
-            className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors ${
+            className={`flex items-center justify-center gap-2 pb-3.5 pt-2 text-sm font-semibold transition-colors border-b-2 ${
               activeTab === 'collaborate'
-                ? 'text-foreground border-b-2 border-primary bg-background'
-                : 'text-muted-foreground hover:text-foreground bg-muted/30'
+                ? 'text-foreground border-primary'
+                : 'text-muted-foreground hover:text-foreground border-transparent'
             }`}
             onClick={() => setActiveTab('collaborate')}
           >
@@ -178,10 +178,10 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
             Collaborate
           </button>
           <button
-            className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold transition-colors ${
+            className={`flex items-center justify-center gap-2 pb-3.5 pt-2 text-sm font-semibold transition-colors border-b-2 ${
               activeTab === 'publish'
-                ? 'text-foreground border-b-2 border-primary bg-background'
-                : 'text-muted-foreground hover:text-foreground bg-muted/30'
+                ? 'text-foreground border-primary'
+                : 'text-muted-foreground hover:text-foreground border-transparent'
             }`}
             onClick={() => setActiveTab('publish')}
           >
