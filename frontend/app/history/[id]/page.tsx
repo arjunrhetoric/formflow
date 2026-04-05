@@ -57,13 +57,13 @@ export default function TimeTravel() {
       <div ref={canvasRef} className="flex flex-col h-screen bg-background overflow-hidden relative">
         <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
         {/* Toolbar */}
-        <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
+        <div className="flex h-14 items-center px-3 md:px-4 border-b border-border bg-card shrink-0 gap-2 md:gap-3 overflow-x-auto no-scrollbar relative z-10 w-full">
+          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => router.push(`/builder/${id}`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <span className="font-bold text-lg">{form.title}</span>
+          <span className="font-bold text-sm md:text-base shrink-0 truncate max-w-[120px] md:max-w-none">{form.title}</span>
 
-          <div className="toolbar-nav mx-auto">
+          <div className="toolbar-nav mx-auto flex items-center shrink-0">
             <button className="toolbar-nav-item" onClick={() => router.push(`/builder/${id}`)}>Workshop</button>
             <button className="toolbar-nav-item" onClick={() => router.push(`/logic/${id}`)}>Logic</button>
             <button className="toolbar-nav-item" onClick={() => router.push(`/theme/${id}`)}>Theme</button>
@@ -71,16 +71,18 @@ export default function TimeTravel() {
             <button className="toolbar-nav-item" onClick={() => router.push(`/vault/${id}`)}>Vault</button>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <PresenceAvatars users={presenceList} />
-            <History className="h-4 w-4 ml-2" />
-            {history.length} version{history.length !== 1 ? 's' : ''}
+          <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground shrink-0 pr-2">
+            <div className="hidden sm:block">
+              <PresenceAvatars users={presenceList} />
+            </div>
+            <History className="h-4 w-4 ml-0 sm:ml-2" />
+            {history.length} ver{history.length !== 1 ? 's' : ''}
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Left: Timeline */}
-          <div className="w-80 border-r border-border bg-card overflow-y-auto shrink-0">
+          <div className="w-full md:w-80 h-[40%] md:h-auto border-b md:border-b-0 md:border-r border-border bg-card overflow-y-auto shrink-0">
             <div className="p-4 border-b border-border">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Version Timeline</h3>
             </div>
@@ -138,7 +140,7 @@ export default function TimeTravel() {
           </div>
 
           {/* Right: Snapshot Preview */}
-          <div className="flex-1 bg-muted/50 p-8 overflow-y-auto flex flex-col">
+          <div className="flex-1 bg-muted/50 p-4 md:p-8 overflow-y-auto flex flex-col">
             {selectedVer ? (
               <AnimatePresence mode="wait">
                 <motion.div
@@ -148,14 +150,14 @@ export default function TimeTravel() {
                   exit={{ opacity: 0, y: -8 }}
                   className="flex-1 flex flex-col max-w-3xl mx-auto w-full"
                 >
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-4">
                     <div>
-                      <h2 className="text-xl font-bold">Version {selectedVer.version} Preview</h2>
-                      <p className="text-muted-foreground text-sm mt-1">
+                      <h2 className="text-lg md:text-xl font-bold">Version {selectedVer.version} Preview</h2>
+                      <p className="text-muted-foreground text-xs md:text-sm mt-1">
                         Snapshot from {format(new Date(selectedVer.createdAt), 'PPP · p')}
                       </p>
                     </div>
-                    <Button onClick={handleRestore} disabled={restoring}>
+                    <Button onClick={handleRestore} disabled={restoring} className="w-full md:w-auto">
                       {restoring ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Restoring...</>
                       ) : (
@@ -165,7 +167,7 @@ export default function TimeTravel() {
                   </div>
 
                   {/* Form Preview Card */}
-                  <div className="bg-card rounded-2xl shadow-xl border border-border p-10 flex-1">
+                  <div className="bg-card rounded-2xl shadow-xl border border-border p-6 md:p-10 flex-1">
                     <h1 className="text-3xl font-bold mb-8">{selectedVer.snapshot?.title || form.title}</h1>
                     <div className="space-y-6 pointer-events-none opacity-80">
                       {snapshotFields.map((f: any) => {

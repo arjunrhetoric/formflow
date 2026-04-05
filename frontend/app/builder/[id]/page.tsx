@@ -20,7 +20,7 @@ import {
   ChevronLeft, CheckCircle, Loader2, Link as LinkIcon,
   Settings, GripVertical, Trash2, Undo2, Redo2,
   Type, FileText, Hash, Mail, Phone, CheckSquare,
-  List, Star, Calendar, Upload, PenTool, Copy
+  List, Star, Calendar, Upload, PenTool, Copy, Plus, LayoutDashboard
 } from 'lucide-react';
 
 const PALETTE = [
@@ -372,6 +372,7 @@ export default function WorkshopBuilder() {
   const [saving, setSaving] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [mobileView, setMobileView] = useState<'canvas' | 'palette' | 'properties'>('canvas');
 
   // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState<any[][]>([]);
@@ -555,12 +556,12 @@ export default function WorkshopBuilder() {
         <div ref={canvasRef} className="flex flex-col h-screen bg-background overflow-hidden">
           <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
           {/* ─── Toolbar ─── */}
-          <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-3">
-            <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')}>
+          <div className="flex h-14 items-center px-3 md:px-4 border-b border-border bg-card shrink-0 gap-2 md:gap-3 overflow-x-auto no-scrollbar relative z-10 w-full">
+            <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => router.push('/dashboard')}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <Input
-              className="w-56 border-transparent hover:border-border font-bold text-base px-2 h-9 bg-transparent"
+              className="w-32 md:w-56 shrink-0 border-transparent hover:border-border font-bold text-sm md:text-base px-2 h-9 bg-transparent min-w-[120px]"
               value={form.title}
               onChange={(e) => {
                 const title = e.target.value;
@@ -571,12 +572,12 @@ export default function WorkshopBuilder() {
                 });
               }}
             />
-            <div className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+            <div className="shrink-0 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
               v{form.version || 1}
             </div>
 
             {/* Nav tabs */}
-            <div className="toolbar-nav mx-auto">
+            <div className="toolbar-nav mx-auto flex items-center shrink-0">
               <button className="toolbar-nav-item active">Workshop</button>
               <button className="toolbar-nav-item" onClick={() => router.push(`/logic/${id}`)}>Logic</button>
               <button className="toolbar-nav-item" onClick={() => router.push(`/theme/${id}`)}>Theme</button>
@@ -595,10 +596,12 @@ export default function WorkshopBuilder() {
             </div>
 
             {/* Presence */}
-            <PresenceAvatars users={presenceList} />
+            <div className="shrink-0 pr-2">
+              <PresenceAvatars users={presenceList} />
+            </div>
 
             {/* Save status + actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
               <div className="flex items-center text-xs text-muted-foreground gap-1.5 font-medium">
                 {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 text-green-600" />}
                 {saving ? 'Saving...' : 'Saved'}
@@ -614,9 +617,26 @@ export default function WorkshopBuilder() {
           </div>
 
           {/* ─── Three-panel layout ─── */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden relative">
+            
+            {/* Mobile Tab Bar */}
+            <div className="lg:hidden absolute bottom-0 inset-x-0 h-16 bg-card border-t border-border flex items-center justify-around z-40 px-2 shrink-0">
+              <button className={`flex flex-col items-center justify-center w-20 h-full gap-1 ${mobileView === 'palette' ? 'text-primary' : 'text-muted-foreground'}`} onClick={() => setMobileView('palette')}>
+                <Plus className="h-5 w-5" />
+                <span className="text-[10px] font-medium tracking-wide">Elements</span>
+              </button>
+              <button className={`flex flex-col items-center justify-center w-20 h-full gap-1 ${mobileView === 'canvas' ? 'text-primary' : 'text-muted-foreground'}`} onClick={() => setMobileView('canvas')}>
+                <LayoutDashboard className="h-5 w-5" />
+                <span className="text-[10px] font-medium tracking-wide">Canvas</span>
+              </button>
+              <button className={`flex flex-col items-center justify-center w-20 h-full gap-1 ${mobileView === 'properties' ? 'text-primary' : 'text-muted-foreground'}`} onClick={() => setMobileView('properties')}>
+                <Settings className="h-5 w-5" />
+                <span className="text-[10px] font-medium tracking-wide">Settings</span>
+              </button>
+            </div>
+
             {/* Left: Field Palette */}
-            <div className="w-64 border-r border-border bg-card flex flex-col overflow-y-auto shrink-0">
+            <div className={`w-full lg:w-64 border-r border-border bg-card flex flex-col overflow-y-auto shrink-0 pb-16 lg:pb-0 ${mobileView === 'palette' ? 'flex' : 'hidden lg:flex'}`}>
               <div className="p-4 border-b border-border">
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Add Fields</h3>
                 <p className="mt-2 text-sm text-muted-foreground">Drop in clean field blocks and build on the live canvas.</p>
@@ -645,7 +665,7 @@ export default function WorkshopBuilder() {
             </div>
 
             {/* Center: Canvas */}
-            <div className="flex-1 overflow-y-auto p-8 relative bg-background">
+            <div className={`flex-1 overflow-y-auto p-4 md:p-8 relative bg-background pb-20 lg:pb-8 ${mobileView === 'canvas' ? 'block' : 'hidden lg:block'}`}>
               <div className="ff-stage max-w-3xl mx-auto rounded-[2rem] shadow-2xl border border-border bg-card min-h-[500px] p-8 pb-16 relative">
                 <div className="mb-8 flex items-start justify-between gap-4 border-b border-border/60 pb-6">
                   <div>
@@ -693,7 +713,7 @@ export default function WorkshopBuilder() {
             </div>
 
             {/* Right: Properties Panel */}
-            <div className="w-80 border-l border-border bg-card p-5 overflow-y-auto shrink-0">
+            <div className={`w-full lg:w-80 border-l border-border bg-card p-5 overflow-y-auto shrink-0 pb-20 lg:pb-5 ${mobileView === 'properties' ? 'block' : 'hidden lg:block'}`}>
               <div className="mb-5 rounded-[1.35rem] border border-border bg-card p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>

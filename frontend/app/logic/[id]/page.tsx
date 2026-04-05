@@ -273,13 +273,13 @@ export default function LogicMap() {
       <div ref={canvasRef} className="flex flex-col h-screen bg-[#f4f4f5] relative">
         <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
         {/* Toolbar */}
-        <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-4 shadow-sm z-10 relative">
-          <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
+        <div className="flex h-14 items-center px-3 md:px-4 border-b border-border bg-card shrink-0 gap-2 md:gap-3 overflow-x-auto no-scrollbar relative z-10 w-full">
+          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => router.push(`/builder/${id}`)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <span className="font-bold text-lg">{form.title}</span>
+          <span className="font-bold text-sm md:text-base shrink-0 truncate max-w-[120px] md:max-w-none">{form.title}</span>
 
-          <div className="toolbar-nav mx-auto">
+          <div className="toolbar-nav mx-auto flex items-center shrink-0">
             <button className="toolbar-nav-item" onClick={() => router.push(`/builder/${id}`)}>Workshop</button>
             <button className="toolbar-nav-item active">Logic</button>
             <button className="toolbar-nav-item" onClick={() => router.push(`/theme/${id}`)}>Theme</button>
@@ -287,7 +287,7 @@ export default function LogicMap() {
             <button className="toolbar-nav-item" onClick={() => router.push(`/vault/${id}`)}>Vault</button>
           </div>
 
-          <div className="mr-2">
+          <div className="mr-2 shrink-0">
             <PresenceAvatars users={presenceList} />
           </div>
           <Button className="h-8 text-xs" onClick={handleSave} disabled={saving}>
@@ -313,7 +313,7 @@ export default function LogicMap() {
           </ReactFlow>
 
           {/* Instructions panel */}
-          <div className="absolute top-4 right-4 w-72 bg-card border border-border rounded-xl shadow-lg p-4 z-10">
+          <div className="absolute top-4 right-4 w-72 bg-card border border-border rounded-xl shadow-lg p-4 z-10 hidden sm:block">
             <div className="flex items-center gap-2 mb-3">
               <Info className="h-4 w-4 text-primary" />
               <h3 className="font-bold text-sm">Logic Rules</h3>

@@ -390,42 +390,46 @@ export function ShareDialog({ open, onClose, formId, formSlug, currentUserId }: 
                 {settingsSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border gap-2">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <Lock className="h-4 w-4 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">Require Sign Up</p>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">Require Sign Up</p>
+                    <p className="text-xs text-muted-foreground truncate">
                       Respondents must create an account to submit
                     </p>
                   </div>
                 </div>
-                <Switch
-                  checked={requireSignup}
-                  onCheckedChange={handleToggleSignup}
-                  disabled={settingsSaving}
-                />
+                <div className="shrink-0">
+                  <Switch
+                    checked={requireSignup}
+                    onCheckedChange={handleToggleSignup}
+                    disabled={settingsSaving}
+                  />
+                </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3">
-                <div className="flex items-center gap-3">
+              <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3 gap-2">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                     <Globe className="h-4 w-4 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">Allow Multiple Responses</p>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">Allow Multiple Responses</p>
+                    <p className="text-xs text-muted-foreground truncate" title="If off, one response per IP/network is allowed. If on, repeat submissions are accepted.">
                       If off, one response per IP/network is allowed. If on, repeat submissions are accepted.
                     </p>
                   </div>
                 </div>
-                <Switch
-                  checked={allowMultipleResponses}
-                  onCheckedChange={handleToggleMultipleResponses}
-                  disabled={settingsSaving}
-                />
+                <div className="shrink-0">
+                  <Switch
+                    checked={allowMultipleResponses}
+                    onCheckedChange={handleToggleMultipleResponses}
+                    disabled={settingsSaving}
+                  />
+                </div>
               </div>
               {settingsError && (
                 <p className="mt-2 text-xs font-medium text-destructive">{settingsError}</p>

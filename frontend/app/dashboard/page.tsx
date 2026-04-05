@@ -61,16 +61,16 @@ export default function Dashboard() {
   return (
     <AuthGuard>
       <Sidebar>
-        <div className="p-8 max-w-6xl mx-auto flex flex-col gap-8">
+        <div className="p-4 md:p-8 max-w-6xl mx-auto flex flex-col gap-6 md:gap-8 min-w-0">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between items-start gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">My Forms</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Forms</h1>
               <p className="text-muted-foreground text-sm mt-1">
                 {forms.length} form{forms.length !== 1 ? 's' : ''} · {totalResponses} total response{totalResponses !== 1 ? 's' : ''}
               </p>
             </div>
-            <Button onClick={handleCreate}>
+            <Button onClick={handleCreate} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" /> New Form
             </Button>
           </div>

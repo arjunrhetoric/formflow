@@ -80,13 +80,13 @@ export default function ThemeEditor() {
       <div ref={canvasRef} className="flex flex-col h-screen bg-background overflow-hidden relative">
         <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
         {/* Toolbar */}
-        <div className="flex h-14 items-center px-4 border-b border-border bg-card shrink-0 gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
+        <div className="flex h-14 items-center px-3 md:px-4 border-b border-border bg-card shrink-0 gap-2 md:gap-3 overflow-x-auto no-scrollbar relative z-10 w-full">
+          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => router.push(`/builder/${id}`)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <span className="font-bold text-lg">{form.title}</span>
+          <span className="font-bold text-sm md:text-base shrink-0 truncate max-w-[120px] md:max-w-none">{form.title}</span>
 
-          <div className="toolbar-nav mx-auto">
+          <div className="toolbar-nav mx-auto flex items-center shrink-0">
             <button className="toolbar-nav-item" onClick={() => router.push(`/builder/${id}`)}>Workshop</button>
             <button className="toolbar-nav-item" onClick={() => router.push(`/logic/${id}`)}>Logic</button>
             <button className="toolbar-nav-item active">Theme</button>
@@ -94,14 +94,14 @@ export default function ThemeEditor() {
             <button className="toolbar-nav-item" onClick={() => router.push(`/vault/${id}`)}>Vault</button>
           </div>
 
-          <div className="ml-auto w-48 flex justify-end">
+          <div className="ml-auto w-auto flex justify-end shrink-0 pr-2">
             <PresenceAvatars users={presenceList} />
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Left: Controls */}
-          <div className="w-[380px] border-r border-border bg-card flex flex-col overflow-y-auto shrink-0">
+          <div className="w-full md:w-[380px] h-[50%] md:h-auto border-b md:border-b-0 md:border-r border-border bg-card flex flex-col overflow-y-auto shrink-0">
             {/* Preset selector */}
             <div className="p-5 border-b border-border">
               <div className="flex items-center gap-2 mb-4">

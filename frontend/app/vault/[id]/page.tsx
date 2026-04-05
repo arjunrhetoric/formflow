@@ -81,32 +81,34 @@ export default function ResponseVault() {
   return (
     <AuthGuard>
       <Sidebar>
-        <div ref={canvasRef} className="p-8 max-w-[1400px] mx-auto flex flex-col gap-6 h-screen overflow-hidden relative">
+        <div ref={canvasRef} className="p-4 md:p-8 max-w-[1400px] mx-auto flex flex-col gap-4 md:gap-6 h-[calc(100vh-56px)] md:h-screen overflow-hidden relative">
           <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
           {/* Header */}
-          <div className="flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => router.push(`/builder/${id}`)}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between shrink-0 gap-3">
+            <div className="flex items-center gap-3 md:gap-4">
+              <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 -ml-2 md:ml-0" onClick={() => router.push(`/builder/${id}`)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">Response Vault</h1>
-                <p className="text-muted-foreground text-sm font-medium">{form.title}</p>
+              <div className="min-w-0">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate">{form.title || 'Response Vault'}</h1>
+                <p className="text-muted-foreground text-xs md:text-sm font-medium hidden md:block">Responses</p>
               </div>
             </div>
-            <div className="flex gap-3 items-center">
-              <PresenceAvatars users={presenceList} />
-              <Button variant="outline" onClick={() => handleExport('csv')} disabled={total === 0}>
-                <Download className="mr-2 h-4 w-4" /> CSV
+            <div className="flex gap-2 items-center flex-wrap">
+              <div className="hidden sm:block">
+                <PresenceAvatars users={presenceList} />
+              </div>
+              <Button variant="outline" className="flex-1 sm:flex-none h-9 text-xs md:text-sm" onClick={() => handleExport('csv')} disabled={total === 0}>
+                <Download className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" /> CSV
               </Button>
-              <Button variant="outline" onClick={() => handleExport('json')} disabled={total === 0}>
-                <Download className="mr-2 h-4 w-4" /> JSON
+              <Button variant="outline" className="flex-1 sm:flex-none h-9 text-xs md:text-sm" onClick={() => handleExport('json')} disabled={total === 0}>
+                <Download className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" /> JSON
               </Button>
             </div>
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 shrink-0 overflow-y-auto sm:overflow-visible">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -158,9 +160,9 @@ export default function ResponseVault() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : responses.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-12 text-muted-foreground opacity-60">
-                <TableIcon className="h-12 w-12 mb-4" />
-                <p className="font-medium">No responses collected yet.</p>
+              <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12 text-muted-foreground opacity-60 text-center">
+                <TableIcon className="h-10 w-10 md:h-12 md:w-12 mb-4" />
+                <p className="font-medium text-sm md:text-base">No responses collected yet.</p>
                 <p className="text-xs mt-1">Share your form to start collecting responses.</p>
               </div>
             ) : (
