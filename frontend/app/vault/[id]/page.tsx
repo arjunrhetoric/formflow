@@ -81,7 +81,7 @@ export default function ResponseVault() {
   return (
     <AuthGuard>
       <Sidebar>
-        <div ref={canvasRef} className="p-4 md:p-8 max-w-[1400px] mx-auto flex flex-col gap-4 md:gap-6 h-[calc(100vh-56px)] md:h-screen overflow-hidden relative">
+        <div ref={canvasRef} className="w-full p-4 md:p-8 max-w-[1400px] mx-auto flex flex-col gap-4 md:gap-6 h-[calc(100vh-56px)] md:h-screen overflow-hidden relative">
           <RemoteCursors cursors={remoteCursors} currentSocketId={socketId} />
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between shrink-0 gap-3">

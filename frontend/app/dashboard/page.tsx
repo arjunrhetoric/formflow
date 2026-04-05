@@ -61,7 +61,7 @@ export default function Dashboard() {
   return (
     <AuthGuard>
       <Sidebar>
-        <div className="p-4 md:p-8 max-w-6xl mx-auto flex flex-col gap-6 md:gap-8 min-w-0">
+        <div className="w-full p-4 md:p-8 max-w-6xl mx-auto flex flex-col gap-6 md:gap-8 min-w-0">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between items-start gap-4">
             <div>
